@@ -1,0 +1,19 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: growthbookfeatures-viewer-role
+rules:
+- apiGroups:
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookfeatures
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookfeatures/status
+  verbs:
+  - get

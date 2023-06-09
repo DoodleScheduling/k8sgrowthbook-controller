@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: k8sreq-system
+
+resources: 
+- ../../../default
+- requestclone.yaml
+
+helmCharts:
+- repo: https://stefanprodan.github.io/podinfo
+  name: podinfo
+  version: 6.3.5
+  releaseName: podinfo
+  namespace: k8sreq-system
+  valuesInline:
+    replicaCount: 1
+
+images:
+- name: ghcr.io/doodlescheduling/k8sgrowthbook-controller
+  newTag: latest
+  newName: k8sgrowthbook-controller

@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+namespace: k8sreq-system
+resources:
+- ../base/crd
+- ../base/rbac
+- ../base/manager
+- namespace.yaml
+
+# Uncomment for prometheus support
+#components:
+#- ../base/components/prometheus
