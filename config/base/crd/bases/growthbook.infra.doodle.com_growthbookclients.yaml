@@ -12,8 +12,6 @@ spec:
     kind: GrowthbookClient
     listKind: GrowthbookClientList
     plural: growthbookclients
-    shortNames:
-    - rc
     singular: growthbookclient
   scope: Namespaced
   versions:
@@ -46,6 +44,41 @@ spec:
             type: object
           spec:
             description: GrowthbookClientSpec defines the desired state of GrowthbookClient
+            properties:
+              encryptPayload:
+                type: boolean
+              environment:
+                type: string
+              id:
+                type: string
+              includeDraftExperiments:
+                type: boolean
+              includeExperimentNames:
+                type: boolean
+              includeVisualExperiments:
+                type: boolean
+              languages:
+                items:
+                  type: string
+                type: array
+              name:
+                type: string
+              organization:
+                type: string
+              project:
+                type: string
+              tokenReference:
+                description: SecretReference is a named reference to a secret which
+                  contains user credentials
+                properties:
+                  name:
+                    description: Name referrs to the name of the secret, must be located
+                      whithin the same namespace
+                    type: string
+                  userField:
+                    default: token
+                    type: string
+                type: object
             type: object
           status:
             description: GrowthbookClientStatus defines the observed state of GrowthbookClient

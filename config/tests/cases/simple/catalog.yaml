@@ -1,0 +1,72 @@
+apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookInstance
+metadata:
+  name: my-instance
+  namespace: growthbook
+spec:
+  interval: 5m
+  suspend: false
+  mongodb:
+    uri: mongo://mongodb:27017
+    rootSecret:
+      name: growthbook-mongodb-credentials
+  resourceSelector:
+    matchLabels:
+      growthbook-instance: my-instance
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: growthbook-mongodb-credentials
+  namespace: growthbook
+data:
+  username: dXNlcg==
+  password: cGFzc3dvcmQ=
+---
+apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookFeature
+metadata:
+  name: feature-a
+  labels:
+    growthbook-instance: my-instance
+  namespace: growthbook
+spec:
+  description: feature A
+  defaultValue: x
+  tags:
+  - frontend
+---
+apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookFeature
+metadata:
+  name: feature-b
+  labels:
+    growthbook-instance: my-instance
+  namespace: growthbook
+spec:
+  description: feature B
+  defaultValue: y
+  tags:
+  - frontend
+---
+apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookClient
+metadata:
+  name: client-1
+  labels:
+    growthbook-instance: my-instance
+  namespace: growthbook
+spec:
+  description: feature B
+  tags:
+  - frontend
+  tokenSecret:
+    name: growthbook-client-1-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: growthbook-client-1-token
+  namespace: growthbook
+data:
+  token: cGFzc3dvcmQ=

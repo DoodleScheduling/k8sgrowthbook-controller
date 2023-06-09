@@ -12,8 +12,6 @@ spec:
     kind: GrowthbookFeature
     listKind: GrowthbookFeatureList
     plural: growthbookfeatures
-    shortNames:
-    - rc
     singular: growthbookfeature
   scope: Namespaced
   versions:

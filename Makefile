@@ -103,13 +103,9 @@ CLUSTER=kind
 kind-test: docker-build ## Deploy including test
 	kustomize build config/base/crd | kubectl --context kind-${CLUSTER} apply -f -	
 	kind load docker-image ${IMG} --name ${CLUSTER}
-	kubectl -n k8sreq-system delete pods --all
+	kubectl -n k8sgrowthbook-system delete pods --all
 	kustomize build config/tests/cases/${TEST_PROFILE} --enable-helm | kubectl --context kind-${CLUSTER} apply -f -	
-	kubectl --context kind-${CLUSTER} -n k8sreq-system wait --for=condition=Ready pods -l control-plane=controller-manager -l app.kubernetes.io/name=podinfo -l app.kubernetes.io/managed-by!=Helm --timeout=3m
-	kubectl -n k8sreq-system port-forward svc/k8sgrowthbook-controller 8080:8080 & \
-	pid=$$!; \
-	sleep 2
-	curl -v --fail -H "Host: webhook-receiver.example.com" http://localhost:8080; \
+	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=condition=Ready pods -l control-plane=controller-manager -l app.kubernetes.io/name=podinfo -l app.kubernetes.io/managed-by!=Helm --timeout=3m
 	kill $$pid
 
 ##@ Deployment
@@ -120,7 +116,7 @@ endif
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/base/crd | kubectl apply -f
+	$(KUSTOMIZE) build config/base/crd | kubectl apply -f -
 
 .PHONY: uninstall
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.

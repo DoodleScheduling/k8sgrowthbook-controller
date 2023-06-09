@@ -12,8 +12,6 @@ spec:
     kind: GrowthbookInstance
     listKind: GrowthbookInstanceList
     plural: growthbookinstances
-    shortNames:
-    - rc
     singular: growthbookinstance
   scope: Namespaced
   versions:
@@ -64,9 +62,6 @@ spec:
                         description: Name referrs to the name of the secret, must
                           be located whithin the same namespace
                         type: string
-                      namespace:
-                        description: Namespace, by default the same namespace is used.
-                        type: string
                       passwordField:
                         default: password
                         type: string
@@ -79,8 +74,8 @@ spec:
                 required:
                 - rootSecret
                 type: object
-              rootSelector:
-                description: ResourceSelector defines a selector to select Growthboob
+              resourceSelector:
+                description: ResourceSelector defines a selector to select Growthbook
                   resources associated with this instance
                 properties:
                   matchExpressions:
@@ -201,6 +196,10 @@ spec:
                   - type
                   type: object
                 type: array
+              lastReconcileDuration:
+                description: LastReconcileDuration is the total time the reconcile
+                  of the realm took
+                type: string
               observedGeneration:
                 description: ObservedGeneration is the last generation reconciled
                   by the controller

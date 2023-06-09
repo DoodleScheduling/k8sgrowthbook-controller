@@ -34,8 +34,8 @@ func (f *Feature) FromV1beta1(feature v1beta1.GrowthbookFeature) {
 
 func UpdateFeature(ctx context.Context, feature Feature, db *mongo.Database) error {
 	col := db.Collection("feature")
-	filter := bson.D{
-		{"name", feature.ID},
+	filter := bson.M{
+		"name": feature.ID,
 	}
 
 	count, err := col.CountDocuments(ctx, filter)
@@ -49,7 +49,7 @@ func UpdateFeature(ctx context.Context, feature Feature, db *mongo.Database) err
 		return err
 	}
 
-	update := bson.D{{"$set", feature}}
+	update := bson.D{{Key: "$set", Value: feature}}
 	_, err = col.UpdateOne(ctx, filter, update)
 	return err
 }
