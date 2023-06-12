@@ -40,7 +40,7 @@ type GrowthbookInstanceSpec struct {
 // GrowthbookInstanceMongoDB defines how to connect to the growthbook MongoDB
 type GrowthbookInstanceMongoDB struct {
 	// Address is a MongoDB comptaible URI `mongodb://xxx`
-	URI string `json:"address,omitempty"`
+	URI string `json:"uri,omitempty"`
 
 	// Secret is a secret refernece with the MongoDB credentials
 	Secret *SecretReference `json:"rootSecret"`

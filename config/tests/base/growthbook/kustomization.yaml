@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namePrefix: growthbook-
+commonLabels:
+  app: growthbook
+  component: backend
+resources:
+- api-service.yaml
+- config-cm.yaml
+- deployment.yaml
+- envs-cm.yaml
+- secret.yaml
+- service.yaml

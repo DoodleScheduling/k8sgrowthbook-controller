@@ -1,0 +1,13 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: envs
+data:
+  APP_ORIGIN: "http://growthbook-backend.k8sgrowthbook-system"
+  API_HOST: "http://growthbook-api.k8sgrowthbook-system/api"
+  NODE_ENV: "production"
+  EXPRESS_TRUST_PROXY_OPTS: "true"
+  PROXY_ENABLED: "0"
+  EXPERIMENT_REFRESH_FREQUENCY: "1"
+  QUERY_CACHE_TTL_MINS: "1"
+  DISABLE_TELEMETRY: "true"

@@ -1,0 +1,104 @@
+apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookInstance
+metadata:
+  name: my-instance
+spec:
+  interval: 5m
+  suspend: false
+  mongodb:
+    uri: mongodb://mongodb.k8sgrowthbook-system:27017/growthbook
+    rootSecret:
+      name: growthbook-mongodb-credentials
+  resourceSelector:
+    matchLabels:
+      growthbook-instance: my-instance
+---
+apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookOrganization
+metadata:
+  name: my-org
+  labels:
+    growthbook-instance: my-instance
+spec:
+  ownerEmail: owner@myorg.com
+  users:
+  - role: admin
+    selector:
+      matchLabels: 
+        growthbook-org: my-org
+        growthbook-admin: "yes"
+  resourceSelector:
+    matchLabels: 
+      growthbook-org: my-org
+---
+apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookUser
+metadata:
+  name: admin
+  labels:
+    growthbook-org: my-org
+    growthbook-admin: "yes"
+    growthbook-instance: my-instance
+spec:
+  email: admin@myorg.com
+  secret:
+    name: growthbook-admin
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: growthbook-admin
+data:
+  username: cm9vdA== #root
+  password: cGFzc3dvcmQ= #password
+---
+apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookFeature
+metadata:
+  name: feature-a
+  labels:
+     growthbook-org: my-org
+spec:
+  description: feature A
+  valueType: boolean
+  defaultValue: "true"
+  tags:
+  - frontend
+  environments:
+  - name: "production"
+    enabled: true
+---
+apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookFeature
+metadata:
+  name: feature-b
+  labels:
+    growthbook-org: my-org
+spec:
+  description: feature B
+  defaultValue: "false"
+  valueType: boolean
+  tags:
+  - frontend
+  environments:
+  - name: "production"
+    enabled: true
+---
+apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookClient
+metadata:
+  name: client-1
+  labels:
+    growthbook-org: my-org
+spec:
+  languages: 
+  - react
+  tokenSecret:
+    name: growthbook-client-1-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: growthbook-client-1-token
+data:
+  token: dG9rZW4= #token

@@ -4,4 +4,6 @@ resources:
 - bases/growthbook.infra.doodle.com_growthbookfeatures.yaml
 - bases/growthbook.infra.doodle.com_growthbookclients.yaml
 - bases/growthbook.infra.doodle.com_growthbookinstances.yaml
+- bases/growthbook.infra.doodle.com_growthbookorganizations.yaml
+- bases/growthbook.infra.doodle.com_growthbookusers.yaml
 # +kubebuilder:scaffold:crdkustomizeresource

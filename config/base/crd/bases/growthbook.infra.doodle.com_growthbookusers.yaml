@@ -5,14 +5,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
-  name: growthbookclients.growthbook.infra.doodle.com
+  name: growthbookusers.growthbook.infra.doodle.com
 spec:
   group: growthbook.infra.doodle.com
   names:
-    kind: GrowthbookClient
-    listKind: GrowthbookClientList
-    plural: growthbookclients
-    singular: growthbookclient
+    kind: GrowthbookUser
+    listKind: GrowthbookUserList
+    plural: growthbookusers
+    singular: growthbookuser
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -22,7 +22,7 @@ spec:
     name: v1beta1
     schema:
       openAPIV3Schema:
-        description: GrowthbookClient is the Schema for the GrowthbookClients API
+        description: GrowthbookUser is the Schema for the GrowthbookUsers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -37,40 +37,33 @@ spec:
           metadata:
             type: object
           spec:
-            description: GrowthbookClientSpec defines the desired state of GrowthbookClient
+            description: GrowthbookUserSpec defines the desired state of GrowthbookUser
             properties:
-              encryptPayload:
-                type: boolean
-              environment:
+              email:
                 type: string
               id:
                 type: string
-              includeDraftExperiments:
-                type: boolean
-              includeExperimentNames:
-                type: boolean
-              includeVisualExperiments:
-                type: boolean
-              languages:
-                items:
-                  type: string
-                type: array
               name:
                 type: string
-              project:
-                type: string
-              tokenSecret:
-                description: SecretReference is a named reference to a secret which
-                  contains user credentials
+              secret:
+                description: Secret is a secret reference to a secret containing the
+                  users password
                 properties:
                   name:
                     description: Name referrs to the name of the secret, must be located
                       whithin the same namespace
                     type: string
-                  tokenField:
-                    default: token
+                  passwordField:
+                    default: password
                     type: string
+                  userField:
+                    default: username
+                    type: string
+                required:
+                - name
                 type: object
+            required:
+            - secret
             type: object
         type: object
     served: true

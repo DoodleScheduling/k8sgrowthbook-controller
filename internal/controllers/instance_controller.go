@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -261,7 +263,7 @@ func (r *GrowthbookInstanceReconciler) reconcile(ctx context.Context, instance v
 	var err error
 	var usr, pw string
 	if instance.Spec.MongoDB.Secret != nil {
-		usr, pw, err = getSecret(ctx, r.Client, instance)
+		usr, pw, err = r.getSecret(ctx, instance, instance.Spec.MongoDB.Secret)
 		if err != nil {
 			return instance, err
 		}
@@ -275,31 +277,109 @@ func (r *GrowthbookInstanceReconciler) reconcile(ctx context.Context, instance v
 		})
 	}
 
+	opts.SetAppName("k8sgrowthbook-controller")
 	mongoClient, err := mongo.NewClient(opts)
 	if err != nil {
 		return instance, err
 	}
 
-	db := mongoClient.Database("s")
-
-	instance.Status.SubResourceCatalog = []v1beta1.ResourceReference{}
-
-	instance, err = r.reconcileFeatures(ctx, instance, db, logger)
+	u, err := url.Parse(instance.Spec.MongoDB.URI)
 	if err != nil {
 		return instance, err
 	}
 
-	/*instance, err = r.reconcileClients(ctx, instance, db, logger)
+	dbName := strings.TrimLeft(u.Path, "/")
+	db := mongoClient.Database(dbName)
+	logger.Info("connect to mongodb", "dbName", dbName, "host", opts.Hosts)
+
+	if err := mongoClient.Connect(ctx); err != nil {
+		return instance, err
+	}
+
+	instance.Status.SubResourceCatalog = []v1beta1.ResourceReference{}
+
+	instance, err = r.reconcileUsers(ctx, instance, db, logger)
+	fmt.Printf("err %#v", err)
 	if err != nil {
 		return instance, err
-	}*/
+	}
+
+	instance, orgs, err := r.reconcileOrganizations(ctx, instance, db, logger)
+	fmt.Printf("err %#v", err)
+	if err != nil {
+		return instance, err
+	}
+
+	for _, org := range orgs {
+		instance, err = r.reconcileFeatures(ctx, instance, org, db, logger)
+		if err != nil {
+			return instance, err
+		}
+
+		instance, err = r.reconcileClients(ctx, instance, org, db, logger)
+		if err != nil {
+			return instance, err
+		}
+	}
 
 	return instance, err
 }
 
-func (r *GrowthbookInstanceReconciler) reconcileFeatures(ctx context.Context, instance v1beta1.GrowthbookInstance, db *mongo.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
-	var features v1beta1.GrowthbookFeatureList
+func (r *GrowthbookInstanceReconciler) reconcileOrganizations(ctx context.Context, instance v1beta1.GrowthbookInstance, db *mongo.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, []v1beta1.GrowthbookOrganization, error) {
+	var orgs v1beta1.GrowthbookOrganizationList
 	selector, err := metav1.LabelSelectorAsSelector(instance.Spec.ResourceSelector)
+	if err != nil {
+		return instance, nil, err
+	}
+
+	err = r.Client.List(ctx, &orgs, client.InNamespace(instance.Namespace), client.MatchingLabelsSelector{Selector: selector})
+	if err != nil {
+		return instance, nil, err
+	}
+
+	for _, feature := range orgs.Items {
+		instance.Status.SubResourceCatalog = append(instance.Status.SubResourceCatalog, v1beta1.ResourceReference{
+			Kind:       feature.Kind,
+			Name:       feature.Name,
+			APIVersion: feature.APIVersion,
+		})
+	}
+
+	for _, org := range orgs.Items {
+		o := growthbook.Organization{}
+		o.FromV1beta1(org)
+
+		for _, binding := range org.Spec.Users {
+			var users v1beta1.GrowthbookUserList
+			selector, err := metav1.LabelSelectorAsSelector(binding.Selector)
+			if err != nil {
+				return instance, nil, err
+			}
+
+			err = r.Client.List(ctx, &users, client.InNamespace(instance.Namespace), client.MatchingLabelsSelector{Selector: selector})
+			if err != nil {
+				return instance, nil, err
+			}
+
+			for _, user := range users.Items {
+				o.Members = append(o.Members, growthbook.OrganizationMember{
+					ID:   user.GetID(),
+					Role: binding.Role,
+				})
+			}
+		}
+
+		if err := growthbook.UpdateOrganization(ctx, o, db); err != nil {
+			return instance, nil, err
+		}
+	}
+
+	return instance, orgs.Items, nil
+}
+
+func (r *GrowthbookInstanceReconciler) reconcileFeatures(ctx context.Context, instance v1beta1.GrowthbookInstance, org v1beta1.GrowthbookOrganization, db *mongo.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
+	var features v1beta1.GrowthbookFeatureList
+	selector, err := metav1.LabelSelectorAsSelector(org.Spec.ResourceSelector)
 	if err != nil {
 		return instance, err
 	}
@@ -318,7 +398,11 @@ func (r *GrowthbookInstanceReconciler) reconcileFeatures(ctx context.Context, in
 	}
 
 	for _, feature := range features.Items {
-		f := growthbook.Feature{}
+		f := growthbook.Feature{
+			Owner:        "k8sgrowthbook-controller",
+			Organization: org.GetID(),
+		}
+
 		f.FromV1beta1(feature)
 
 		if err := growthbook.UpdateFeature(ctx, f, db); err != nil {
@@ -329,10 +413,48 @@ func (r *GrowthbookInstanceReconciler) reconcileFeatures(ctx context.Context, in
 	return instance, nil
 }
 
-/*
-func (r *GrowthbookInstanceReconciler) reconcileClients(ctx context.Context, instance v1beta1.GrowthbookInstance, db *mongo.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
-	var clients v1beta1.GrowthbookClientList
+func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, instance v1beta1.GrowthbookInstance, db *mongo.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
+	var users v1beta1.GrowthbookUserList
 	selector, err := metav1.LabelSelectorAsSelector(instance.Spec.ResourceSelector)
+	if err != nil {
+		return instance, err
+	}
+
+	err = r.Client.List(ctx, &users, client.InNamespace(instance.Namespace), client.MatchingLabelsSelector{Selector: selector})
+	if err != nil {
+		return instance, err
+	}
+
+	for _, user := range users.Items {
+		instance.Status.SubResourceCatalog = append(instance.Status.SubResourceCatalog, v1beta1.ResourceReference{
+			Kind:       user.Kind,
+			Name:       user.Name,
+			APIVersion: user.APIVersion,
+		})
+	}
+
+	for _, user := range users.Items {
+		_, password, err := r.getSecret(ctx, instance, user.Spec.Secret)
+		if err != nil {
+			return instance, err
+		}
+
+		u := growthbook.User{}
+		if err := u.FromV1beta1(user).SetPassword(password); err != nil {
+			return instance, err
+		}
+
+		if err := growthbook.UpdateUser(ctx, u, db); err != nil {
+			return instance, err
+		}
+	}
+
+	return instance, nil
+}
+
+func (r *GrowthbookInstanceReconciler) reconcileClients(ctx context.Context, instance v1beta1.GrowthbookInstance, org v1beta1.GrowthbookOrganization, db *mongo.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
+	var clients v1beta1.GrowthbookClientList
+	selector, err := metav1.LabelSelectorAsSelector(org.Spec.ResourceSelector)
 	if err != nil {
 		return instance, err
 	}
@@ -351,31 +473,71 @@ func (r *GrowthbookInstanceReconciler) reconcileClients(ctx context.Context, ins
 	}
 
 	for _, client := range clients.Items {
-		if err := r.reconcileFeature(ctx, client, db); err != nil {
-			//log only
+		token, err := r.getClientToken(ctx, client)
+		if err != nil {
+			return instance, err
+		}
+
+		if token[:4] != "sdk-" {
+			token = fmt.Sprintf("sdk-%s", token)
+		}
+
+		s := growthbook.SDKConnection{
+			Organization: org.GetID(),
+			Key:          token,
+		}
+
+		s.FromV1beta1(client)
+
+		if err := growthbook.UpdateSDKConnection(ctx, s, db); err != nil {
+			return instance, err
 		}
 	}
 
 	return instance, nil
-}*/
-/*func (r *GrowthbookInstanceReconciler) reconcileClient(ctx context.Context, client v1beta1.GrowthbookClient, db *mongo.Database) (v1beta1.GrowthbookInstance, error) {
-}*/
+}
 
-func getSecret(ctx context.Context, c client.Client, instance v1beta1.GrowthbookInstance) (string, string, error) {
+func (r *GrowthbookInstanceReconciler) getClientToken(ctx context.Context, client v1beta1.GrowthbookClient) (string, error) {
+	// Fetch referencing root secret
+	secret := &corev1.Secret{}
+	secretName := types.NamespacedName{
+		Namespace: client.Namespace,
+		Name:      client.Spec.TokenSecret.Name,
+	}
+	err := r.Client.Get(ctx, secretName, secret)
+
+	// Failed to fetch referenced secret, requeue immediately
+	if err != nil {
+		return "", fmt.Errorf("referencing secret was not found: %w", err)
+	}
+
+	tokenFieldName := "token"
+	if client.Spec.TokenSecret.TokenField != "" {
+		tokenFieldName = client.Spec.TokenSecret.TokenField
+	}
+
+	if val, ok := secret.Data[tokenFieldName]; !ok {
+		return "", errors.New("defined token field not found in secret")
+	} else {
+		return string(val), nil
+	}
+}
+
+func (r *GrowthbookInstanceReconciler) getSecret(ctx context.Context, instance v1beta1.GrowthbookInstance, secretReference *v1beta1.SecretReference) (string, string, error) {
 	// Fetch referencing root secret
 	secret := &corev1.Secret{}
 	secretName := types.NamespacedName{
 		Namespace: instance.Namespace,
-		Name:      instance.Spec.MongoDB.Secret.Name,
+		Name:      secretReference.Name,
 	}
-	err := c.Get(ctx, secretName, secret)
+	err := r.Client.Get(ctx, secretName, secret)
 
 	// Failed to fetch referenced secret, requeue immediately
 	if err != nil {
 		return "", "", fmt.Errorf("referencing secret was not found: %w", err)
 	}
 
-	usr, pw, err := extractCredentials(instance.Spec.MongoDB.Secret, secret)
+	usr, pw, err := r.extractCredentials(secretReference, secret)
 	if err != nil {
 		return usr, pw, fmt.Errorf("credentials field not found in referenced rootSecret: %w", err)
 	}
@@ -383,7 +545,7 @@ func getSecret(ctx context.Context, c client.Client, instance v1beta1.Growthbook
 	return usr, pw, err
 }
 
-func extractCredentials(credentials *v1beta1.SecretReference, secret *corev1.Secret) (string, string, error) {
+func (r *GrowthbookInstanceReconciler) extractCredentials(credentials *v1beta1.SecretReference, secret *corev1.Secret) (string, string, error) {
 	var (
 		user string
 		pw   string

@@ -6,5 +6,5 @@ resources:
 - role_binding.yaml
 - leader_election_role.yaml
 - leader_election_role_binding.yaml
-- growthbookfeatures_editor_role.yaml
-- growthbookfeatures_viewer_role.yaml
+- growthbook_editor_role.yaml
+- growthbook_viewer_role.yaml

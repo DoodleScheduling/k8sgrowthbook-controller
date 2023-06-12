@@ -7,7 +7,7 @@
 *.dylib
 bin
 /manager
-config/tests/cases/simple/charts
+config/tests/.../charts
 coverage.out
 
 # Test binary, build with `go test -c`

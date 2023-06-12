@@ -17,13 +17,14 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // GrowthbookClientSpec defines the desired state of GrowthbookClient
 type GrowthbookClientSpec struct {
 	Languages                []string             `json:"languages,omitempty"`
-	Organization             string               `json:"organization,omitempty"`
 	Name                     string               `json:"name,omitempty"`
 	Environment              string               `json:"environment,omitempty"`
 	EncryptPayload           bool                 `json:"encryptPayload,omitempty"`
@@ -32,7 +33,25 @@ type GrowthbookClientSpec struct {
 	IncludeDraftExperiments  bool                 `json:"includeDraftExperiments,omitempty"`
 	IncludeExperimentNames   bool                 `json:"includeExperimentNames,omitempty"`
 	ID                       string               `json:"id,omitempty"`
-	TokenReference           TokenSecretReference `json:"tokenReference,omitempty"`
+	TokenSecret              TokenSecretReference `json:"tokenSecret,omitempty"`
+}
+
+// GetID returns the client ID which is the resource name if not overwritten by spec.ID
+func (c *GrowthbookClient) GetID() string {
+	if c.Spec.ID == "" {
+		return fmt.Sprintf("%s-%s", c.Name, c.Namespace)
+	}
+
+	return c.Spec.ID
+}
+
+// GetName returns the client name which is the resource name if not overwritten by spec.Name
+func (c *GrowthbookClient) GetName() string {
+	if c.Spec.Name == "" {
+		return c.Name
+	}
+
+	return c.Spec.ID
 }
 
 // SecretReference is a named reference to a secret which contains user credentials
@@ -43,37 +62,10 @@ type TokenSecretReference struct {
 
 	// +optional
 	// +kubebuilder:default:=token
-	TokenField string `json:"userField,omitempty"`
-}
-
-// GrowthbookClientStatus defines the observed state of GrowthbookClient
-type GrowthbookClientStatus struct {
-	// Conditions holds the conditions for the VaultBinding.
-	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-}
-
-// GrowthbookClientNotReady
-func GrowthbookClientNotReady(clone GrowthbookClient, reason, message string) GrowthbookClient {
-	setResourceCondition(&clone, ReadyCondition, metav1.ConditionFalse, reason, message)
-	return clone
-}
-
-// GrowthbookClientReady
-func GrowthbookClientReady(clone GrowthbookClient, reason, message string) GrowthbookClient {
-	setResourceCondition(&clone, ReadyCondition, metav1.ConditionTrue, reason, message)
-	return clone
-}
-
-// GetStatusConditions returns a pointer to the Status.Conditions slice
-func (in *GrowthbookClient) GetStatusConditions() *[]metav1.Condition {
-	return &in.Status.Conditions
+	TokenField string `json:"tokenField,omitempty"`
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status",description=""
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message",description=""
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 
 // GrowthbookClient is the Schema for the GrowthbookClients API
@@ -81,8 +73,7 @@ type GrowthbookClient struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   GrowthbookClientSpec   `json:"spec,omitempty"`
-	Status GrowthbookClientStatus `json:"status,omitempty"`
+	Spec GrowthbookClientSpec `json:"spec,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -71,7 +71,7 @@ test: manifests generate fmt vet tidy envtest ## Run tests.
 ##@ Build
 
 .PHONY: build
-build: generate fmt vet tidy ## Build manager binary.
+build: manifests generate fmt vet tidy ## Build manager binary.
 	CGO_ENABLED=0 go build -o manager main.go
 
 .PHONY: run
@@ -96,7 +96,7 @@ docker-build: build
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
-TEST_PROFILE=simple
+TEST_PROFILE=growthbook-v2.1.1-mongodb-v5
 CLUSTER=kind
 
 .PHONY: kind-test

@@ -52,9 +52,6 @@ spec:
               mongodb:
                 description: MongoDB settings
                 properties:
-                  address:
-                    description: Address is a MongoDB comptaible URI `mongodb://xxx`
-                    type: string
                   rootSecret:
                     description: Secret is a secret refernece with the MongoDB credentials
                     properties:
@@ -71,6 +68,9 @@ spec:
                     required:
                     - name
                     type: object
+                  uri:
+                    description: Address is a MongoDB comptaible URI `mongodb://xxx`
+                    type: string
                 required:
                 - rootSecret
                 type: object

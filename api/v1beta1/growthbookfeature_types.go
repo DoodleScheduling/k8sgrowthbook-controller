@@ -17,18 +17,38 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // GrowthbookFeatureSpec defines the desired state of GrowthbookFeature
 type GrowthbookFeatureSpec struct {
-	ID           string        `json:"id,omitempty"`
-	Description  string        `json:"description,omitempty"`
-	Tags         []string      `json:"tags,omitempty"`
-	DefaultValue string        `json:"defaultValue,omitempty"`
-	ValueType    string        `json:"valueType,omitempty"`
-	Organization string        `json:"organization,omitempty"`
-	Environments []Environment `json:"environemnt,omitempty"`
+	ID           string           `json:"id,omitempty"`
+	Description  string           `json:"description,omitempty"`
+	Tags         []string         `json:"tags,omitempty"`
+	DefaultValue string           `json:"defaultValue,omitempty"`
+	ValueType    FeatureValueType `json:"valueType,omitempty"`
+	// +kubebuilder:default:={{name: production, enabled: true}}
+	Environments []Environment `json:"environments,omitempty"`
+}
+
+type FeatureValueType string
+
+var (
+	FeatureValueTypeBoolean FeatureValueType = "boolean"
+	FeatureValueTypeString  FeatureValueType = "string"
+	FeatureValueTypeNumber  FeatureValueType = "number"
+	FeatureValueTypeJSON    FeatureValueType = "json"
+)
+
+// GetID returns the feature ID which is the resource name if not overwritten by spec.ID
+func (f *GrowthbookFeature) GetID() string {
+	if f.Spec.ID == "" {
+		return fmt.Sprintf("%s-%s", f.Name, f.Namespace)
+	}
+
+	return f.Spec.ID
 }
 
 // Environment defines a grothbook environment
@@ -37,34 +57,7 @@ type Environment struct {
 	Enabled bool   `json:"enabled,omitempty"`
 }
 
-// GrowthbookFeatureStatus defines the observed state of GrowthbookFeature
-type GrowthbookFeatureStatus struct {
-	// Conditions holds the conditions for the VaultBinding.
-	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-}
-
-// GrowthbookFeatureNotReady
-func GrowthbookFeatureNotReady(clone GrowthbookFeature, reason, message string) GrowthbookFeature {
-	setResourceCondition(&clone, ReadyCondition, metav1.ConditionFalse, reason, message)
-	return clone
-}
-
-// GrowthbookFeatureReady
-func GrowthbookFeatureReady(clone GrowthbookFeature, reason, message string) GrowthbookFeature {
-	setResourceCondition(&clone, ReadyCondition, metav1.ConditionTrue, reason, message)
-	return clone
-}
-
-// GetStatusConditions returns a pointer to the Status.Conditions slice
-func (in *GrowthbookFeature) GetStatusConditions() *[]metav1.Condition {
-	return &in.Status.Conditions
-}
-
 // +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status",description=""
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message",description=""
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 
 // GrowthbookFeature is the Schema for the GrowthbookFeatures API
@@ -72,8 +65,7 @@ type GrowthbookFeature struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   GrowthbookFeatureSpec   `json:"spec,omitempty"`
-	Status GrowthbookFeatureStatus `json:"status,omitempty"`
+	Spec GrowthbookFeatureSpec `json:"spec,omitempty"`
 }
 
 // +kubebuilder:object:root=true

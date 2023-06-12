@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  selector:
+    matchLabels: {}
+  strategy:
+    type: RollingUpdate
+  template:
+    spec:
+      restartPolicy: Always
+      volumes:
+        - name: yarn-cache
+          emptyDir: {}
+        - name: yarn-global
+          emptyDir: {}
+        - name: uploads
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: config
+      containers:
+        - name: growthbook
+          image: growthbook/growthbook:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http-internal
+              containerPort: 3000
+              protocol: TCP
+            - containerPort: 3100
+              name: http-api
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: envs
+            - secretRef:  
+                name: backend
+          env:
+            - name: MONGODB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: growthbook-mongodb-credentials
+                  key: username
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: growthbook-mongodb-credentials
+                  key: password
+            - name: MONGODB_URI
+              value: mongodb://$(MONGODB_USER):$(MONGODB_PASSWORD)@mongodb/growthbook?authSource=admin
+            - name: YARN_CACHE_FOLDER
+              value: "/.cache/yarn"
+          volumeMounts:
+            - name: yarn-cache
+              mountPath: /.cache/yarn
+            - name: yarn-global
+              mountPath: /.yarn
+            - name: uploads
+              mountPath: /usr/local/src/app/packages/back-end/uploads
+            - name: config
+              mountPath: /etc/hosts
+              subPath: hosts
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 3100
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 3100
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+            periodSeconds: 10
+          resources: {}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000

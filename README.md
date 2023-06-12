@@ -8,14 +8,23 @@
 
 Kubernetes controller for managing growthbook.
 
-Currently supported are `GrowthbookFeature`, `GrowthbookClient` and `GrowthbookInstance` while the later one is the main resource
-referencing others. Basically for deploying features or clients a `GrowthbookInstance` resource needs to be declared.
+Currently supported are `GrowthbookOrganization`, `GrowthbookUser`, `GrowthbookFeature`, `GrowthbookClient` and `GrowthbookInstance` while the later one is the main resource
+referencing organizations and users while organizations select further resources including clients, features and users (organization membership).
+Basically for deploying features and clients a `GrowthbookInstance` as well as at least one `GrowthbooKOrganization` resource needs to be created.
 
-This controller does not deploy growthbook. It manages resources for an existing growthbook instance.
-Growthbook currently does not support managing features nor clients in their http rest api. This controller 
+This controller does not deploy growthbook itself. It manages resources for an existing growthbook instance.
+Growthbook currently does not support managing features nor clients within the scope of the rest api. This controller 
 bypasses their api and manages the resources on MongoDB directly.
 
 ## Example Usage
+
+The following manifests configure:
+* A reference to an existing growthbook instance (mongodb)
+* A growthbook org called `my-org`
+* An admin user called `admin` and assigned to `my-org` as admin with the password `password`
+* Two features assigned to the org `my-org`
+* A Client SDK connection assigned to the org `my-org` with the token `token`
+
 ```yaml
 apiVersion: growthbook.infra.doodle.com/v1beta1
 kind: GrowthbookInstance
@@ -24,6 +33,7 @@ metadata:
   namespace: growthbook
 spec:
   interval: 5m
+  timeout: 1m
   suspend: false
   mongodb:
     uri: mongo://mongodb:27017
@@ -43,37 +53,84 @@ data:
   password: cGFzc3dvcmQ=
 ---
 apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookOrganization
+metadata:
+  name: my-org
+  labels:
+    growthbook-instance: my-instance
+spec:
+  ownerEmail: owner@myorg.com
+  users:
+  - role: admin
+    selector:
+      matchLabels: 
+        growthbook-org: my-org
+        growthbook-admin: "yes"
+  resourceSelector:
+    matchLabels: 
+      growthbook-org: my-org
+---
+apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookUser
+metadata:
+  name: admin
+  labels:
+    growthbook-org: my-org
+    growthbook-admin: "yes"
+    growthbook-instance: my-instance
+spec:
+  email: admin@myorg.com
+  secret:
+    name: growthbook-admin
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: growthbook-admin
+data:
+  username: cm9vdA== #root
+  password: cGFzc3dvcmQ= #password
+---
+apiVersion: growthbook.infra.doodle.com/v1beta1
 kind: GrowthbookFeature
 metadata:
   name: feature-a
   labels:
-    growthbook-instance: my-instance
+    growthbook-org: my-org
   namespace: growthbook
 spec:
   description: feature A
-  defaultValue: x
+  defaultValue: "true"
+  valueType: boolean
   tags:
   - frontend
+  environments:
+  - name: "production"
+    enabled: true
 ---
 apiVersion: growthbook.infra.doodle.com/v1beta1
 kind: GrowthbookFeature
 metadata:
   name: feature-b
   labels:
-    growthbook-instance: my-instance
+    growthbook-org: my-org
   namespace: growthbook
 spec:
   description: feature B
-  defaultValue: y
+  defaultValue: "false"
+  valueType: boolean
   tags:
   - frontend
+  environments:
+  - name: "production"
+    enabled: true
 ---
 apiVersion: growthbook.infra.doodle.com/v1beta1
 kind: GrowthbookClient
 metadata:
   name: client-1
   labels:
-    growthbook-instance: my-instance
+    growthbook-org: my-org
   namespace: growthbook
 spec:
   description: feature B

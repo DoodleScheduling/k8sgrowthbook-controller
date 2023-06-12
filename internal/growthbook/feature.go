@@ -2,53 +2,79 @@ package growthbook
 
 import (
 	"context"
+	"time"
 
 	"github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+type FeatureValueType string
+
+var (
+	FeatureValueTypeBoolean FeatureValueType = "boolean"
+	FeatureValueTypeString  FeatureValueType = "string"
+	FeatureValueTypeNumber  FeatureValueType = "number"
+	FeatureValueTypeJSON    FeatureValueType = "json"
+)
+
 type Feature struct {
-	ID           string   `bson:"id,omitempty"`
-	Description  string   `bson:"description,omitempty"`
-	Tags         []string `bson:"tags,omitempty"`
-	DefaultValue string   `bson:"defaultValue,omitempty"`
-	ValueType    string   `bson:"valueType,omitempty"`
-	Organization string   `bson:"organization,omitempty"`
-	Environments []string `bson:"environment,omitempty"`
+	ID                  string                        `bson:"id"`
+	Owner               string                        `bson:"owner"`
+	Description         string                        `bson:"description"`
+	Tags                []string                      `bson:"tags"`
+	DefaultValue        string                        `bson:"defaultValue"`
+	ValueType           FeatureValueType              `bson:"valueType"`
+	Organization        string                        `bson:"organization"`
+	Environments        []string                      `bson:"environment"`
+	EnvironmentSettings map[string]EnvironmentSetting `bson:"environmentSettings"`
+	DateCreated         time.Time                     `bson:"dateCreated"`
+	DateUpdated         time.Time                     `bson:"dateUpdated"`
+	Archived            bool                          `bson:"archived"`
 }
 
-func (f *Feature) FromV1beta1(feature v1beta1.GrowthbookFeature) {
-	f.ID = feature.Spec.ID
+type EnvironmentSetting struct {
+	Enabled bool `bson:"enabled"`
+}
+
+func (f *Feature) FromV1beta1(feature v1beta1.GrowthbookFeature) *Feature {
+	f.ID = feature.GetID()
 	f.Description = feature.Spec.Description
 	f.Tags = feature.Spec.Tags
 	f.DefaultValue = feature.Spec.DefaultValue
-	f.ValueType = feature.Spec.ValueType
-	f.Organization = feature.Spec.Organization
+	f.ValueType = FeatureValueType(feature.Spec.ValueType)
 
 	f.Environments = nil
 	for _, env := range feature.Spec.Environments {
 		f.Environments = append(f.Environments, env.Name)
 	}
+
+	f.EnvironmentSettings = make(map[string]EnvironmentSetting)
+	for _, env := range feature.Spec.Environments {
+		f.EnvironmentSettings[env.Name] = EnvironmentSetting{
+			Enabled: env.Enabled,
+		}
+	}
+
+	return f
 }
 
 func UpdateFeature(ctx context.Context, feature Feature, db *mongo.Database) error {
-	col := db.Collection("feature")
+	col := db.Collection("features")
 	filter := bson.M{
-		"name": feature.ID,
+		"id": feature.ID,
 	}
 
-	count, err := col.CountDocuments(ctx, filter)
+	var existing Feature
+	err := col.FindOne(ctx, filter).Decode(&existing)
 
 	if err != nil {
-		return nil
-	}
-
-	if count == 0 {
+		feature.DateCreated = time.Now()
 		_, err := col.InsertOne(ctx, feature)
 		return err
 	}
 
+	feature.DateUpdated = time.Now()
 	update := bson.D{{Key: "$set", Value: feature}}
 	_, err = col.UpdateOne(ctx, filter, update)
 	return err
