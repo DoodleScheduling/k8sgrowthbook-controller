@@ -135,7 +135,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration != 0 && reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason
+				return reconciledInstance.Status.ObservedGeneration != 0 && reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason && len(reconciledInstance.Status.SubResourceCatalog) == len(expectedStatus.SubResourceCatalog)
 			}, timeout, interval).Should(BeTrue())
 
 			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
