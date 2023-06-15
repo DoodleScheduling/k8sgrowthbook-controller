@@ -18,7 +18,7 @@ bypasses their api and manages the resources on MongoDB directly.
 
 ## Resource relationship
 
-![graph](https://github.com/DoodleScheduling/k8sgrowthbook-controller/blob/master/docs/resource-relationship.jpg.jpg?raw=true)
+![graph](https://github.com/DoodleScheduling/k8sgrowthbook-controller/blob/master/docs/resource-relationship.jpg?raw=true)
 
 ## Example Usage
 
