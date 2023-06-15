@@ -105,7 +105,8 @@ kind-test: docker-build ## Deploy including test
 	kind load docker-image ${IMG} --name ${CLUSTER}
 	kubectl -n k8sgrowthbook-system delete pods --all
 	kustomize build config/tests/cases/${TEST_PROFILE} --enable-helm | kubectl --context kind-${CLUSTER} apply -f -	
-	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=condition=Ready pods -l control-plane=controller-manager -l app.kubernetes.io/name=podinfo -l app.kubernetes.io/managed-by!=Helm --timeout=3m
+	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=condition=Ready pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify!=yes --timeout=3m
+	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=jsonpath='{.status.conditions[1].reason}'=PodCompleted pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify=yes --timeout=3m
 
 ##@ Deployment
 ifndef ignore-not-found

@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: verify
+  labels:
+    verify: yes
 spec:
   restartPolicy: OnFailure
   containers:
