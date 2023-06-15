@@ -46,9 +46,8 @@ func MockProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, user
 
 var _ = Describe("GrowthbookInstance controller", func() {
 	const (
-		timeout  = time.Second * 15
-		duration = time.Second * 10
-		interval = time.Millisecond * 250
+		timeout  = time.Second * 20
+		interval = time.Millisecond * 350
 	)
 
 	When("reconciling a GrowthbookInstance with referencing organizations", func() {

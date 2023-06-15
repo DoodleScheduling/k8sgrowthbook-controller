@@ -4,3 +4,5 @@ resources:
 - growthbook-controller
 - growthbook
 - mongodb
+- catalog.yaml
+- verify.yaml

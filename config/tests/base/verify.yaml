@@ -12,7 +12,7 @@ spec:
     - /bin/sh
     - "-c"
     - |
-      curl --fail -vvv http://growthbook-api/api/features/sdk-token
+      curl --fail -vvv http://growthbook-api/api/features/sdk-token | grep '{"status":200,"features":{"feature-a-k8sgrowthbook-system":{"defaultValue":true},"feature-b-k8sgrowthbook-system":{"defaultValue":false}}'
     resources: {}
     securityContext:
       allowPrivilegeEscalation: false
