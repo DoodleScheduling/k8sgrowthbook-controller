@@ -24,16 +24,17 @@ import (
 
 // GrowthbookClientSpec defines the desired state of GrowthbookClient
 type GrowthbookClientSpec struct {
-	Languages                []string             `json:"languages,omitempty"`
-	Name                     string               `json:"name,omitempty"`
-	Environment              string               `json:"environment,omitempty"`
-	EncryptPayload           bool                 `json:"encryptPayload,omitempty"`
-	Project                  string               `json:"project,omitempty"`
-	IncludeVisualExperiments bool                 `json:"includeVisualExperiments,omitempty"`
-	IncludeDraftExperiments  bool                 `json:"includeDraftExperiments,omitempty"`
-	IncludeExperimentNames   bool                 `json:"includeExperimentNames,omitempty"`
-	ID                       string               `json:"id,omitempty"`
-	TokenSecret              TokenSecretReference `json:"tokenSecret,omitempty"`
+	Languages []string `json:"languages,omitempty"`
+	Name      string   `json:"name,omitempty"`
+	// +kubebuilder:default:=dev
+	Environment              string                `json:"environment,omitempty"`
+	EncryptPayload           bool                  `json:"encryptPayload,omitempty"`
+	Project                  string                `json:"project,omitempty"`
+	IncludeVisualExperiments bool                  `json:"includeVisualExperiments,omitempty"`
+	IncludeDraftExperiments  bool                  `json:"includeDraftExperiments,omitempty"`
+	IncludeExperimentNames   bool                  `json:"includeExperimentNames,omitempty"`
+	ID                       string                `json:"id,omitempty"`
+	TokenSecret              *TokenSecretReference `json:"tokenSecret"`
 }
 
 // GetID returns the client ID which is the resource name if not overwritten by spec.ID
@@ -51,16 +52,14 @@ func (c *GrowthbookClient) GetName() string {
 		return c.Name
 	}
 
-	return c.Spec.ID
+	return c.Spec.Name
 }
 
 // SecretReference is a named reference to a secret which contains user credentials
 type TokenSecretReference struct {
 	// Name referrs to the name of the secret, must be located whithin the same namespace
-	// +required
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 
-	// +optional
 	// +kubebuilder:default:=token
 	TokenField string `json:"tokenField,omitempty"`
 }

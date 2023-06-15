@@ -1,12 +1,13 @@
 package growthbook
 
 import (
+	"bytes"
 	"context"
 	"time"
 
 	"github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
+	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/storage"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type FeatureValueType string
@@ -31,10 +32,12 @@ type Feature struct {
 	DateCreated         time.Time                     `bson:"dateCreated"`
 	DateUpdated         time.Time                     `bson:"dateUpdated"`
 	Archived            bool                          `bson:"archived"`
+	Revision            int                           `bson:"__v"`
 }
 
 type EnvironmentSetting struct {
-	Enabled bool `bson:"enabled"`
+	Enabled bool        `bson:"enabled"`
+	Rules   interface{} `bson:"rules"`
 }
 
 func (f *Feature) FromV1beta1(feature v1beta1.GrowthbookFeature) *Feature {
@@ -43,11 +46,7 @@ func (f *Feature) FromV1beta1(feature v1beta1.GrowthbookFeature) *Feature {
 	f.Tags = feature.Spec.Tags
 	f.DefaultValue = feature.Spec.DefaultValue
 	f.ValueType = FeatureValueType(feature.Spec.ValueType)
-
 	f.Environments = nil
-	for _, env := range feature.Spec.Environments {
-		f.Environments = append(f.Environments, env.Name)
-	}
 
 	f.EnvironmentSettings = make(map[string]EnvironmentSetting)
 	for _, env := range feature.Spec.Environments {
@@ -59,23 +58,73 @@ func (f *Feature) FromV1beta1(feature v1beta1.GrowthbookFeature) *Feature {
 	return f
 }
 
-func UpdateFeature(ctx context.Context, feature Feature, db *mongo.Database) error {
+func UpdateFeature(ctx context.Context, feature Feature, db storage.Database) error {
 	col := db.Collection("features")
 	filter := bson.M{
 		"id": feature.ID,
 	}
 
 	var existing Feature
-	err := col.FindOne(ctx, filter).Decode(&existing)
+	err := col.FindOne(ctx, filter, &existing)
 
 	if err != nil {
 		feature.DateCreated = time.Now()
-		_, err := col.InsertOne(ctx, feature)
+		feature.DateUpdated = feature.DateCreated
+		return col.InsertOne(ctx, feature)
+	}
+
+	existingBson, err := bson.Marshal(existing)
+	if err != nil {
 		return err
 	}
 
-	feature.DateUpdated = time.Now()
-	update := bson.D{{Key: "$set", Value: feature}}
-	_, err = col.UpdateOne(ctx, filter, update)
-	return err
+	existing.ID = feature.ID
+	existing.Description = feature.Description
+	existing.DefaultValue = feature.DefaultValue
+	existing.ValueType = feature.ValueType
+	existing.Tags = feature.Tags
+	existing.Environments = feature.Environments
+
+	if existing.EnvironmentSettings == nil {
+		existing.EnvironmentSettings = make(map[string]EnvironmentSetting)
+	}
+
+	for env, settings := range feature.EnvironmentSettings {
+		if val, ok := existing.EnvironmentSettings[env]; ok {
+			s := existing.EnvironmentSettings[env]
+			s.Enabled = val.Enabled
+			existing.EnvironmentSettings[env] = s
+		} else {
+			existing.EnvironmentSettings[env] = EnvironmentSetting{
+				Enabled: settings.Enabled,
+			}
+		}
+	}
+
+	for env := range existing.EnvironmentSettings {
+		if _, ok := feature.EnvironmentSettings[env]; !ok {
+			delete(existing.EnvironmentSettings, env)
+		}
+	}
+
+	updateBson, err := bson.Marshal(existing)
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(existingBson, updateBson) {
+		return nil
+	}
+
+	existing.DateUpdated = time.Now()
+	updateBson, err = bson.Marshal(existing)
+	if err != nil {
+		return err
+	}
+
+	update := bson.D{
+		{Key: "$set", Value: bson.Raw(updateBson)},
+	}
+
+	return col.UpdateOne(ctx, filter, update)
 }

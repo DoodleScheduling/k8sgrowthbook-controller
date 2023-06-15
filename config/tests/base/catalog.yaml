@@ -58,6 +58,7 @@ metadata:
   name: feature-a
   labels:
      growthbook-org: my-org
+     growthbook-instance: my-instance
 spec:
   description: feature A
   valueType: boolean
@@ -74,6 +75,7 @@ metadata:
   name: feature-b
   labels:
     growthbook-org: my-org
+    growthbook-instance: my-instance
 spec:
   description: feature B
   defaultValue: "false"
@@ -90,7 +92,9 @@ metadata:
   name: client-1
   labels:
     growthbook-org: my-org
+    growthbook-instance: my-instance
 spec:
+  environment: production
   languages: 
   - react
   tokenSecret:

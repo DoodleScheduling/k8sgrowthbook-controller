@@ -26,11 +26,13 @@ type GrowthbookInstanceSpec struct {
 	MongoDB GrowthbookInstanceMongoDB `json:"mongodb,omitempty"`
 
 	// Interval reconciliation
-	// +optional
 	Interval *metav1.Duration `json:"interval,omitempty"`
 
+	// Timeout while reconciling the instance
+	// +kubebuilder:default:="5m"
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
+
 	// Suspend reconciliation
-	// +optional
 	Suspend bool `json:"suspend,omitempty"`
 
 	// ResourceSelector defines a selector to select Growthbook resources associated with this instance
@@ -43,22 +45,7 @@ type GrowthbookInstanceMongoDB struct {
 	URI string `json:"uri,omitempty"`
 
 	// Secret is a secret refernece with the MongoDB credentials
-	Secret *SecretReference `json:"rootSecret"`
-}
-
-// SecretReference is a named reference to a secret which contains user credentials
-type SecretReference struct {
-	// Name referrs to the name of the secret, must be located whithin the same namespace
-	// +required
-	Name string `json:"name"`
-
-	// +optional
-	// +kubebuilder:default:=username
-	UserField string `json:"userField"`
-
-	// +optional
-	// +kubebuilder:default:=password
-	PasswordField string `json:"passwordField"`
+	Secret *SecretReference `json:"rootSecret,omitempty"`
 }
 
 // GrowthbookInstanceStatus defines the observed state of GrowthbookInstance

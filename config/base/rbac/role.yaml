@@ -2,7 +2,6 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: manager-role
 rules:
 - apiGroups:
@@ -15,10 +14,22 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - services
+  - secrets
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookclients
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - growthbook.infra.doodle.com
@@ -35,8 +46,44 @@ rules:
 - apiGroups:
   - growthbook.infra.doodle.com
   resources:
-  - growthbookfeatures/status
+  - growthbookinstances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookinstances/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookorganizations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookusers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

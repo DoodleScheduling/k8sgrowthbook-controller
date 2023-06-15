@@ -8,5 +8,3 @@ resources:
 images:
 - name: growthbook/growthbook
   newTag: 2.1.1
-- name: docker.io/bitnami/mongodb
-  newTag: 5.0.18-debian-11-r9

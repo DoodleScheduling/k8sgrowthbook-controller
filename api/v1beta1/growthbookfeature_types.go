@@ -29,7 +29,7 @@ type GrowthbookFeatureSpec struct {
 	Tags         []string         `json:"tags,omitempty"`
 	DefaultValue string           `json:"defaultValue,omitempty"`
 	ValueType    FeatureValueType `json:"valueType,omitempty"`
-	// +kubebuilder:default:={{name: production, enabled: true}}
+	// +kubebuilder:default:={{name: dev, enabled: true}}
 	Environments []Environment `json:"environments,omitempty"`
 }
 

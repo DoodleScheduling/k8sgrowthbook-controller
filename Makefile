@@ -41,7 +41,7 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/base/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/base/crd/bases output:rbac:artifacts:config=config/base/rbac
 	cp config/base/crd/bases/* chart/k8sgrowthbook-controller/crds/
 
 .PHONY: generate
@@ -105,11 +105,10 @@ kind-test: docker-build ## Deploy including test
 	kind load docker-image ${IMG} --name ${CLUSTER}
 	kubectl -n k8sgrowthbook-system delete pods --all
 	kustomize build config/tests/cases/${TEST_PROFILE} --enable-helm | kubectl --context kind-${CLUSTER} apply -f -	
-	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=condition=Ready pods -l control-plane=controller-manager -l app.kubernetes.io/name=podinfo -l app.kubernetes.io/managed-by!=Helm --timeout=3m
-	kill $$pid
+	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=condition=Ready pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify!=yes --timeout=3m
+	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=jsonpath='{.status.conditions[1].reason}'=PodCompleted pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify=yes --timeout=3m
 
 ##@ Deployment
-
 ifndef ignore-not-found
   ignore-not-found = false
 endif
@@ -134,7 +133,7 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 CONTROLLER_GEN = $(GOBIN)/controller-gen
 .PHONY: controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.10.0)
+	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.12.0)
 
 GOLANGCI_LINT = $(GOBIN)/golangci-lint
 .PHONY: golangci-lint
