@@ -135,7 +135,7 @@ func TestUserSetPasswordIfEmpty(t *testing.T) {
 		ID: "id",
 	}
 
-	user.SetPassword(context.TODO(), db, "new-password")
+	g.Expect(user.SetPassword(context.TODO(), db, "new-password")).To(BeNil())
 	g.Expect(len(user.PasswordHash)).To(Equal(161))
 }
 
@@ -157,8 +157,8 @@ func TestUserSetPassword(t *testing.T) {
 		ID: "id",
 	}
 
-	user.SetPassword(context.TODO(), db, "new-password")
+	g.Expect(user.SetPassword(context.TODO(), db, "new-password")).To(BeNil())
 	g.Expect(user.PasswordHash).To(Equal(passwordHash))
-	user.SetPassword(context.TODO(), db, "another-password")
+	g.Expect(user.SetPassword(context.TODO(), db, "another-password")).To(BeNil())
 	g.Expect(user.PasswordHash).To(Not(Equal(passwordHash)))
 }
