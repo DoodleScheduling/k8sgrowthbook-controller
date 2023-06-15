@@ -44,27 +44,63 @@ import (
 
 	v1beta1 "github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
 	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/growthbook"
+	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/storage"
+	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/storage/mongodb"
 )
 
 // +kubebuilder:rbac:groups=growthbook.infra.doodle.com,resources=growthbookinstances,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=growthbook.infra.doodle.com,resources=growthbookinstances/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=growthbook.infra.doodle.com,resources=growthbookorganizations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=growthbook.infra.doodle.com,resources=growthbookusers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=growthbook.infra.doodle.com,resources=growthbookfeatures,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=growthbook.infra.doodle.com,resources=growthbookfeatures/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=growthbook.infra.doodle.com,resources=growthbookclients,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=growthbook.infra.doodle.com,resources=growthbookclients/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 const (
 	secretIndexKey = ".metadata.secret"
+	usersIndexKey  = ".metadata.users"
+	orgsIndexKey   = ".metadata.orgs"
 )
+
+// MongoDBProvider returns a storage.Database for MongoDB
+func MongoDBProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, username, password string) (storage.Database, error) {
+	opts := options.Client().ApplyURI(instance.Spec.MongoDB.URI)
+	if username != "" || password != "" {
+		opts.SetAuth(options.Credential{
+			Username: username,
+			Password: password,
+		})
+	}
+
+	opts.SetAppName("k8sgrowthbook-controller")
+	mongoClient, err := mongo.NewClient(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(instance.Spec.MongoDB.URI)
+	if err != nil {
+		return nil, err
+	}
+
+	dbName := strings.TrimLeft(u.Path, "/")
+	db := mongoClient.Database(dbName)
+
+	if err := mongoClient.Connect(ctx); err != nil {
+		return nil, fmt.Errorf("failed connecting to mongodb: %w", err)
+	}
+
+	return mongodb.New(db), nil
+}
 
 // GrowthbookInstance reconciles a GrowthbookInstance object
 type GrowthbookInstanceReconciler struct {
 	client.Client
-	Log      logr.Logger
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Log              logr.Logger
+	Scheme           *runtime.Scheme
+	Recorder         record.EventRecorder
+	DatabaseProvider func(ctx context.Context, instance v1beta1.GrowthbookInstance, username, password string) (storage.Database, error)
 }
 
 type GrowthbookInstanceReconcilerOptions struct {
@@ -74,33 +110,61 @@ type GrowthbookInstanceReconcilerOptions struct {
 // SetupWithManager adding controllers
 func (r *GrowthbookInstanceReconciler) SetupWithManager(mgr ctrl.Manager, opts GrowthbookInstanceReconcilerOptions) error {
 	// Index the GrowthbookInstance by the Secret references they point at
-	/*if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &v1beta1.GrowthbookInstance{}, secretIndexKey,
+	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &v1beta1.GrowthbookInstance{}, secretIndexKey,
 		func(o client.Object) []string {
 			// The referenced admin secret gets indexed
 			instance := o.(*v1beta1.GrowthbookInstance)
-			keys := []string{
-				fmt.Sprintf("%s/%s", instance.GetNamespace(), instance.Spec.AuthSecret.Name),
+			keys := []string{}
+
+			if instance.Spec.MongoDB.Secret != nil {
+				keys = []string{
+					fmt.Sprintf("%s/%s", instance.GetNamespace(), instance.Spec.MongoDB.Secret.Name),
+				}
 			}
 
-			// As well as an attempt to index all field secret references
-			b, err := json.Marshal(instance.Spec.instance)
+			var users v1beta1.GrowthbookUserList
+			selector, err := metav1.LabelSelectorAsSelector(instance.Spec.ResourceSelector)
 			if err != nil {
-				//TODO error handling
 				return keys
 			}
 
-			results := r.secretRegex.FindAllSubmatch(b, -1)
-			for _, result := range results {
-				if len(result) > 1 {
-					keys = append(keys, fmt.Sprintf("%s/%s", instance.GetNamespace(), string(result[1])))
+			err = r.Client.List(context.TODO(), &users, client.InNamespace(instance.Namespace), client.MatchingLabelsSelector{Selector: selector})
+			if err != nil {
+				return keys
+			}
+
+			for _, user := range users.Items {
+				if user.Spec.Secret == nil {
+					continue
 				}
+
+				keys = append(keys, fmt.Sprintf("%s/%s", instance.GetNamespace(), user.Spec.Secret.Name))
+			}
+
+			var clients v1beta1.GrowthbookClientList
+			selector, err = metav1.LabelSelectorAsSelector(instance.Spec.ResourceSelector)
+			if err != nil {
+				return keys
+			}
+
+			err = r.Client.List(context.TODO(), &clients, client.InNamespace(instance.Namespace), client.MatchingLabelsSelector{Selector: selector})
+			if err != nil {
+				return keys
+			}
+
+			for _, client := range clients.Items {
+				if client.Spec.TokenSecret == nil {
+					continue
+				}
+
+				keys = append(keys, fmt.Sprintf("%s/%s", instance.GetNamespace(), client.Spec.TokenSecret.Name))
 			}
 
 			return keys
 		},
 	); err != nil {
 		return err
-	}*/
+	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.GrowthbookInstance{}, builder.WithPredicates(
@@ -108,85 +172,62 @@ func (r *GrowthbookInstanceReconciler) SetupWithManager(mgr ctrl.Manager, opts G
 		)).
 		Watches(
 			&source.Kind{Type: &corev1.Secret{}},
-			handler.EnqueueRequestsFromMapFunc(r.requestsForSecretChange),
+			handler.EnqueueRequestsFromMapFunc(r.requestsForChangeByField(secretIndexKey)),
 		).
 		Watches(
-			&source.Kind{Type: &v1beta1.GrowthbookFeature{}},
-			handler.EnqueueRequestsFromMapFunc(r.requestsForGrowthbookFeatureChange),
+			&source.Kind{Type: &v1beta1.GrowthbookUser{}},
+			handler.EnqueueRequestsFromMapFunc(r.requestsForChangeBySelector),
+		).
+		Watches(
+			&source.Kind{Type: &v1beta1.GrowthbookOrganization{}},
+			handler.EnqueueRequestsFromMapFunc(r.requestsForChangeBySelector),
 		).
 		Watches(
 			&source.Kind{Type: &v1beta1.GrowthbookClient{}},
-			handler.EnqueueRequestsFromMapFunc(r.requestsForGrowthbookClientChange),
+			handler.EnqueueRequestsFromMapFunc(r.requestsForChangeBySelector),
+		).
+		Watches(
+			&source.Kind{Type: &v1beta1.GrowthbookFeature{}},
+			handler.EnqueueRequestsFromMapFunc(r.requestsForChangeBySelector),
 		).
 		WithOptions(controller.Options{MaxConcurrentReconciles: opts.MaxConcurrentReconciles}).
 		Complete(r)
 }
 
-func (r *GrowthbookInstanceReconciler) requestsForSecretChange(o client.Object) []reconcile.Request {
-	sectet, ok := o.(*corev1.Secret)
-	if !ok {
-		panic(fmt.Sprintf("expected a Secret, got %T", o))
-	}
+func (r *GrowthbookInstanceReconciler) requestsForChangeByField(field string) handler.MapFunc {
+	return func(o client.Object) []reconcile.Request {
+		ctx := context.Background()
+		var list v1beta1.GrowthbookInstanceList
+		if err := r.List(ctx, &list, client.MatchingFields{
+			field: objectKey(o).String(),
+		}); err != nil {
+			return nil
+		}
 
+		var reqs []reconcile.Request
+		for _, instance := range list.Items {
+			r.Log.Info("change of referenced resource detected", "namespace", instance.GetNamespace(), "instance-name", instance.GetName(), "resource-kind", o.GetObjectKind().GroupVersionKind().Kind, "resource-name", o.GetName())
+			reqs = append(reqs, reconcile.Request{NamespacedName: objectKey(&instance)})
+		}
+
+		return reqs
+	}
+}
+
+func (r *GrowthbookInstanceReconciler) requestsForChangeBySelector(o client.Object) []reconcile.Request {
 	ctx := context.Background()
 	var list v1beta1.GrowthbookInstanceList
-	if err := r.List(ctx, &list, client.MatchingFields{
-		secretIndexKey: objectKey(sectet).String(),
-	}); err != nil {
+	if err := r.List(ctx, &list, client.InNamespace(o.GetNamespace())); err != nil {
 		return nil
 	}
 
 	var reqs []reconcile.Request
 	for _, instance := range list.Items {
-		r.Log.Info("referenced secret from a GrowthbookInstance changed detected", "namespace", instance.GetNamespace(), "instance-name", instance.GetName())
-		reqs = append(reqs, reconcile.Request{NamespacedName: objectKey(&instance)})
-	}
-
-	return reqs
-}
-
-func (r *GrowthbookInstanceReconciler) requestsForGrowthbookFeatureChange(o client.Object) []reconcile.Request {
-	_, ok := o.(*v1beta1.GrowthbookFeature)
-	if !ok {
-		panic(fmt.Sprintf("expected a GrowthbookFeature, got %T", o))
-	}
-
-	ctx := context.Background()
-	var list v1beta1.GrowthbookInstanceList
-	if err := r.List(ctx, &list); err != nil {
-		return nil
-	}
-
-	var reqs []reconcile.Request
-	/*for _, instance := range list.Items {
-		if matches(instance.Labels, client.Spec.instanceSelector) {
-			r.Log.Info("change of growthbook client referencing instance detected", "namespace", instance.GetNamespace(), "instance", instance.GetName(), "feature-name", feature.GetName())
+		if matches(o.GetLabels(), instance.Spec.ResourceSelector) {
+			r.Log.Info("change of referenced resource detected", "namespace", o.GetNamespace(), "name", o.GetName(), "kind", o.GetObjectKind().GroupVersionKind().Kind, "instance-name", instance.GetName())
 			reqs = append(reqs, reconcile.Request{NamespacedName: objectKey(&instance)})
 		}
-	}*/
-
-	return reqs
-}
-
-func (r *GrowthbookInstanceReconciler) requestsForGrowthbookClientChange(o client.Object) []reconcile.Request {
-	_, ok := o.(*v1beta1.GrowthbookClient)
-	if !ok {
-		panic(fmt.Sprintf("expected a GrowthbookClient, got %T", o))
 	}
-
-	ctx := context.Background()
-	var list v1beta1.GrowthbookInstanceList
-	if err := r.List(ctx, &list); err != nil {
-		return nil
-	}
-
-	var reqs []reconcile.Request
-	/*for _, instance := range list.Items {
-		if matches(instance.Labels, client.Spec.instanceSelector) {
-			r.Log.Info("change of growthbook client referencing instance detected", "namespace", instance.GetNamespace(), "instance", instance.GetName(), "feature-name", feature.GetName())
-			reqs = append(reqs, reconcile.Request{NamespacedName: objectKey(&instance)})
-		}
-	}*/
 
 	return reqs
 }
@@ -216,7 +257,15 @@ func (r *GrowthbookInstanceReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	start := time.Now()
-	instance, err = r.reconcile(ctx, instance, logger)
+
+	reconcileContext := ctx
+	if instance.Spec.Timeout != nil {
+		c, cancel := context.WithTimeout(ctx, instance.Spec.Timeout.Duration)
+		defer cancel()
+		reconcileContext = c
+	}
+
+	instance, err = r.reconcile(reconcileContext, instance, logger)
 	res := ctrl.Result{}
 
 	done := time.Now()
@@ -263,69 +312,45 @@ func (r *GrowthbookInstanceReconciler) reconcile(ctx context.Context, instance v
 	var err error
 	var usr, pw string
 	if instance.Spec.MongoDB.Secret != nil {
-		usr, pw, err = r.getSecret(ctx, instance, instance.Spec.MongoDB.Secret)
+		usr, pw, err = r.getUsernamePassword(ctx, instance, instance.Spec.MongoDB.Secret)
 		if err != nil {
 			return instance, err
 		}
 	}
 
-	opts := options.Client().ApplyURI(instance.Spec.MongoDB.URI)
-	if usr != "" || pw != "" {
-		opts.SetAuth(options.Credential{
-			Username: usr,
-			Password: pw,
-		})
-	}
-
-	opts.SetAppName("k8sgrowthbook-controller")
-	mongoClient, err := mongo.NewClient(opts)
+	db, err := r.DatabaseProvider(ctx, instance, usr, pw)
 	if err != nil {
-		return instance, err
-	}
-
-	u, err := url.Parse(instance.Spec.MongoDB.URI)
-	if err != nil {
-		return instance, err
-	}
-
-	dbName := strings.TrimLeft(u.Path, "/")
-	db := mongoClient.Database(dbName)
-	logger.Info("connect to mongodb", "dbName", dbName, "host", opts.Hosts)
-
-	if err := mongoClient.Connect(ctx); err != nil {
 		return instance, err
 	}
 
 	instance.Status.SubResourceCatalog = []v1beta1.ResourceReference{}
 
 	instance, err = r.reconcileUsers(ctx, instance, db, logger)
-	fmt.Printf("err %#v", err)
 	if err != nil {
-		return instance, err
+		return instance, fmt.Errorf("failed reconciling users: %w", err)
 	}
 
 	instance, orgs, err := r.reconcileOrganizations(ctx, instance, db, logger)
-	fmt.Printf("err %#v", err)
 	if err != nil {
-		return instance, err
+		return instance, fmt.Errorf("failed reconciling organizations: %w", err)
 	}
 
 	for _, org := range orgs {
 		instance, err = r.reconcileFeatures(ctx, instance, org, db, logger)
 		if err != nil {
-			return instance, err
+			return instance, fmt.Errorf("failed reconciling features: %w", err)
 		}
 
 		instance, err = r.reconcileClients(ctx, instance, org, db, logger)
 		if err != nil {
-			return instance, err
+			return instance, fmt.Errorf("failed reconciling clients: %w", err)
 		}
 	}
 
 	return instance, err
 }
 
-func (r *GrowthbookInstanceReconciler) reconcileOrganizations(ctx context.Context, instance v1beta1.GrowthbookInstance, db *mongo.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, []v1beta1.GrowthbookOrganization, error) {
+func (r *GrowthbookInstanceReconciler) reconcileOrganizations(ctx context.Context, instance v1beta1.GrowthbookInstance, db storage.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, []v1beta1.GrowthbookOrganization, error) {
 	var orgs v1beta1.GrowthbookOrganizationList
 	selector, err := metav1.LabelSelectorAsSelector(instance.Spec.ResourceSelector)
 	if err != nil {
@@ -337,11 +362,11 @@ func (r *GrowthbookInstanceReconciler) reconcileOrganizations(ctx context.Contex
 		return instance, nil, err
 	}
 
-	for _, feature := range orgs.Items {
+	for _, org := range orgs.Items {
 		instance.Status.SubResourceCatalog = append(instance.Status.SubResourceCatalog, v1beta1.ResourceReference{
-			Kind:       feature.Kind,
-			Name:       feature.Name,
-			APIVersion: feature.APIVersion,
+			Kind:       org.Kind,
+			Name:       org.Name,
+			APIVersion: org.APIVersion,
 		})
 	}
 
@@ -377,12 +402,20 @@ func (r *GrowthbookInstanceReconciler) reconcileOrganizations(ctx context.Contex
 	return instance, orgs.Items, nil
 }
 
-func (r *GrowthbookInstanceReconciler) reconcileFeatures(ctx context.Context, instance v1beta1.GrowthbookInstance, org v1beta1.GrowthbookOrganization, db *mongo.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
+func (r *GrowthbookInstanceReconciler) reconcileFeatures(ctx context.Context, instance v1beta1.GrowthbookInstance, org v1beta1.GrowthbookOrganization, db storage.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
 	var features v1beta1.GrowthbookFeatureList
 	selector, err := metav1.LabelSelectorAsSelector(org.Spec.ResourceSelector)
 	if err != nil {
 		return instance, err
 	}
+
+	instanceSelector, err := metav1.LabelSelectorAsSelector(instance.Spec.ResourceSelector)
+	if err != nil {
+		return instance, err
+	}
+
+	req, _ := instanceSelector.Requirements()
+	selector.Add(req...)
 
 	err = r.Client.List(ctx, &features, client.InNamespace(instance.Namespace), client.MatchingLabelsSelector{Selector: selector})
 	if err != nil {
@@ -413,7 +446,7 @@ func (r *GrowthbookInstanceReconciler) reconcileFeatures(ctx context.Context, in
 	return instance, nil
 }
 
-func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, instance v1beta1.GrowthbookInstance, db *mongo.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
+func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, instance v1beta1.GrowthbookInstance, db storage.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
 	var users v1beta1.GrowthbookUserList
 	selector, err := metav1.LabelSelectorAsSelector(instance.Spec.ResourceSelector)
 	if err != nil {
@@ -434,13 +467,17 @@ func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, insta
 	}
 
 	for _, user := range users.Items {
-		_, password, err := r.getSecret(ctx, instance, user.Spec.Secret)
+		username, password, err := r.getOptionalUsernamePassword(ctx, instance, user.Spec.Secret)
 		if err != nil {
 			return instance, err
 		}
 
 		u := growthbook.User{}
-		if err := u.FromV1beta1(user).SetPassword(password); err != nil {
+		if username != "" {
+			u.Email = username
+		}
+
+		if err := u.FromV1beta1(user).SetPassword(ctx, db, password); err != nil {
 			return instance, err
 		}
 
@@ -452,12 +489,20 @@ func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, insta
 	return instance, nil
 }
 
-func (r *GrowthbookInstanceReconciler) reconcileClients(ctx context.Context, instance v1beta1.GrowthbookInstance, org v1beta1.GrowthbookOrganization, db *mongo.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
+func (r *GrowthbookInstanceReconciler) reconcileClients(ctx context.Context, instance v1beta1.GrowthbookInstance, org v1beta1.GrowthbookOrganization, db storage.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
 	var clients v1beta1.GrowthbookClientList
 	selector, err := metav1.LabelSelectorAsSelector(org.Spec.ResourceSelector)
 	if err != nil {
 		return instance, err
 	}
+
+	instanceSelector, err := metav1.LabelSelectorAsSelector(instance.Spec.ResourceSelector)
+	if err != nil {
+		return instance, err
+	}
+
+	req, _ := instanceSelector.Requirements()
+	selector.Add(req...)
 
 	err = r.Client.List(ctx, &clients, client.InNamespace(instance.Namespace), client.MatchingLabelsSelector{Selector: selector})
 	if err != nil {
@@ -497,18 +542,29 @@ func (r *GrowthbookInstanceReconciler) reconcileClients(ctx context.Context, ins
 	return instance, nil
 }
 
-func (r *GrowthbookInstanceReconciler) getClientToken(ctx context.Context, client v1beta1.GrowthbookClient) (string, error) {
-	// Fetch referencing root secret
+func (r *GrowthbookInstanceReconciler) getSecret(ctx context.Context, ref types.NamespacedName) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
-	secretName := types.NamespacedName{
+	err := r.Client.Get(ctx, ref, secret)
+
+	if err != nil {
+		return nil, fmt.Errorf("referencing secret was not found: %w", err)
+	}
+
+	return secret, nil
+}
+
+func (r *GrowthbookInstanceReconciler) getClientToken(ctx context.Context, client v1beta1.GrowthbookClient) (string, error) {
+	if client.Spec.TokenSecret == nil {
+		return "", errors.New("no secret reference provided")
+	}
+
+	secret, err := r.getSecret(ctx, types.NamespacedName{
 		Namespace: client.Namespace,
 		Name:      client.Spec.TokenSecret.Name,
-	}
-	err := r.Client.Get(ctx, secretName, secret)
+	})
 
-	// Failed to fetch referenced secret, requeue immediately
 	if err != nil {
-		return "", fmt.Errorf("referencing secret was not found: %w", err)
+		return "", err
 	}
 
 	tokenFieldName := "token"
@@ -523,41 +579,64 @@ func (r *GrowthbookInstanceReconciler) getClientToken(ctx context.Context, clien
 	}
 }
 
-func (r *GrowthbookInstanceReconciler) getSecret(ctx context.Context, instance v1beta1.GrowthbookInstance, secretReference *v1beta1.SecretReference) (string, string, error) {
-	// Fetch referencing root secret
-	secret := &corev1.Secret{}
-	secretName := types.NamespacedName{
+func (r *GrowthbookInstanceReconciler) getUsernamePassword(ctx context.Context, instance v1beta1.GrowthbookInstance, secretReference *v1beta1.SecretReference) (string, string, error) {
+	if secretReference == nil {
+		return "", "", errors.New("no secret reference provided")
+	}
+
+	secret, err := r.getSecret(ctx, types.NamespacedName{
 		Namespace: instance.Namespace,
 		Name:      secretReference.Name,
-	}
-	err := r.Client.Get(ctx, secretName, secret)
+	})
 
-	// Failed to fetch referenced secret, requeue immediately
 	if err != nil {
-		return "", "", fmt.Errorf("referencing secret was not found: %w", err)
+		return "", "", err
 	}
 
-	usr, pw, err := r.extractCredentials(secretReference, secret)
-	if err != nil {
-		return usr, pw, fmt.Errorf("credentials field not found in referenced rootSecret: %w", err)
-	}
-
-	return usr, pw, err
-}
-
-func (r *GrowthbookInstanceReconciler) extractCredentials(credentials *v1beta1.SecretReference, secret *corev1.Secret) (string, string, error) {
 	var (
 		user string
 		pw   string
 	)
 
-	if val, ok := secret.Data[credentials.UserField]; !ok {
+	if val, ok := secret.Data[secretReference.UserField]; !ok {
 		return "", "", errors.New("defined username field not found in secret")
 	} else {
 		user = string(val)
 	}
 
-	if val, ok := secret.Data[credentials.PasswordField]; !ok {
+	if val, ok := secret.Data[secretReference.PasswordField]; !ok {
+		return "", "", errors.New("defined password field not found in secret")
+	} else {
+		pw = string(val)
+	}
+
+	return user, pw, nil
+}
+
+func (r *GrowthbookInstanceReconciler) getOptionalUsernamePassword(ctx context.Context, instance v1beta1.GrowthbookInstance, secretReference *v1beta1.SecretReference) (string, string, error) {
+	if secretReference == nil {
+		return "", "", errors.New("no secret reference provided")
+	}
+
+	secret, err := r.getSecret(ctx, types.NamespacedName{
+		Namespace: instance.Namespace,
+		Name:      secretReference.Name,
+	})
+
+	if err != nil {
+		return "", "", err
+	}
+
+	var (
+		user string
+		pw   string
+	)
+
+	if val, ok := secret.Data[secretReference.UserField]; ok {
+		user = string(val)
+	}
+
+	if val, ok := secret.Data[secretReference.PasswordField]; !ok {
 		return "", "", errors.New("defined password field not found in secret")
 	} else {
 		pw = string(val)
@@ -582,4 +661,25 @@ func objectKey(object metav1.Object) client.ObjectKey {
 		Namespace: object.GetNamespace(),
 		Name:      object.GetName(),
 	}
+}
+
+func matches(labels map[string]string, selector *metav1.LabelSelector) bool {
+	if selector == nil {
+		return true
+	}
+
+	for kS, vS := range selector.MatchLabels {
+		var match bool
+		for kL, vL := range selector.MatchLabels {
+			if kS == kL && vS == vL {
+				match = true
+			}
+		}
+
+		if !match {
+			return false
+		}
+	}
+
+	return true
 }

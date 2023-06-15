@@ -5,6 +5,7 @@ namespace: k8sgrowthbook-system
 resources:
 - ../../base
 - catalog.yaml
+- verify.yaml
 
 images:
 - name: growthbook/growthbook

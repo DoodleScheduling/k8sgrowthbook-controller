@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -42,7 +44,7 @@ type GrowthbookOrganizationUser struct {
 // GetID returns the organization ID which is the resource name if not overwritten by spec.ID
 func (o *GrowthbookOrganization) GetID() string {
 	if o.Spec.ID == "" {
-		return o.Name
+		return fmt.Sprintf("%s-%s", o.Name, o.Namespace)
 	}
 
 	return o.Spec.ID
@@ -54,7 +56,7 @@ func (o *GrowthbookOrganization) GetName() string {
 		return o.Name
 	}
 
-	return o.Spec.ID
+	return o.Spec.Name
 }
 
 // +kubebuilder:object:root=true

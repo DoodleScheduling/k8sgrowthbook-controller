@@ -47,3 +47,17 @@ func setResourceCondition(resource conditionalResource, condition string, status
 
 	apimeta.SetStatusCondition(conditions, newCondition)
 }
+
+// SecretReference is a named reference to a secret which contains user credentials
+type SecretReference struct {
+	// Name referrs to the name of the secret, must be located whithin the same namespace
+	Name string `json:"name"`
+
+	// +optional
+	// +kubebuilder:default:=username
+	UserField string `json:"userField,omitempty"`
+
+	// +optional
+	// +kubebuilder:default:=password
+	PasswordField string `json:"passwordField,omitempty"`
+}

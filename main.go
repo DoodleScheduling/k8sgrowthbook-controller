@@ -125,10 +125,11 @@ func main() {
 	}
 
 	pReconciler := &controllers.GrowthbookInstanceReconciler{
-		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("GrowthbookInstance"),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("GrowthbookInstance"),
+		Client:           mgr.GetClient(),
+		Log:              ctrl.Log.WithName("controllers").WithName("GrowthbookInstance"),
+		Scheme:           mgr.GetScheme(),
+		Recorder:         mgr.GetEventRecorderFor("GrowthbookInstance"),
+		DatabaseProvider: controllers.MongoDBProvider,
 	}
 	if err = pReconciler.SetupWithManager(mgr, controllers.GrowthbookInstanceReconcilerOptions{MaxConcurrentReconciles: viper.GetInt("concurrent")}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GrowthbookInstance")

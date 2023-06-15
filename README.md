@@ -9,12 +9,16 @@
 Kubernetes controller for managing growthbook.
 
 Currently supported are `GrowthbookOrganization`, `GrowthbookUser`, `GrowthbookFeature`, `GrowthbookClient` and `GrowthbookInstance` while the later one is the main resource
-referencing organizations and users while organizations select further resources including clients, features and users (organization membership).
+referencing all other resources while organizations select further resources including clients, features and users (organization membership).
 Basically for deploying features and clients a `GrowthbookInstance` as well as at least one `GrowthbooKOrganization` resource needs to be created.
 
 This controller does not deploy growthbook itself. It manages resources for an existing growthbook instance.
 Growthbook currently does not support managing features nor clients within the scope of the rest api. This controller 
 bypasses their api and manages the resources on MongoDB directly.
+
+## Resource relationship
+
+![graph](https://github.com/DoodleScheduling/k8sgrowthbook-controller/blob/master/docs/resource-relationship.jpg.jpg?raw=true)
 
 ## Example Usage
 
@@ -97,6 +101,7 @@ metadata:
   name: feature-a
   labels:
     growthbook-org: my-org
+    growthbook-instance: my-instance
   namespace: growthbook
 spec:
   description: feature A
@@ -114,6 +119,7 @@ metadata:
   name: feature-b
   labels:
     growthbook-org: my-org
+    growthbook-instance: my-instance
   namespace: growthbook
 spec:
   description: feature B
@@ -131,9 +137,11 @@ metadata:
   name: client-1
   labels:
     growthbook-org: my-org
+    growthbook-instance: my-instance
   namespace: growthbook
 spec:
   description: feature B
+  environment: production
   tags:
   - frontend
   tokenSecret:
