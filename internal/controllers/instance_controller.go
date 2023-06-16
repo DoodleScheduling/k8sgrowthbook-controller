@@ -27,6 +27,7 @@ import (
 	"github.com/go-logr/logr"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -363,11 +364,7 @@ func (r *GrowthbookInstanceReconciler) reconcileOrganizations(ctx context.Contex
 	}
 
 	for _, org := range orgs.Items {
-		instance.Status.SubResourceCatalog = append(instance.Status.SubResourceCatalog, v1beta1.ResourceReference{
-			Kind:       org.Kind,
-			Name:       org.Name,
-			APIVersion: org.APIVersion,
-		})
+		instance = updateResourceCatalog(instance, &org)
 	}
 
 	for _, org := range orgs.Items {
@@ -423,11 +420,7 @@ func (r *GrowthbookInstanceReconciler) reconcileFeatures(ctx context.Context, in
 	}
 
 	for _, feature := range features.Items {
-		instance.Status.SubResourceCatalog = append(instance.Status.SubResourceCatalog, v1beta1.ResourceReference{
-			Kind:       feature.Kind,
-			Name:       feature.Name,
-			APIVersion: feature.APIVersion,
-		})
+		instance = updateResourceCatalog(instance, &feature)
 	}
 
 	for _, feature := range features.Items {
@@ -459,11 +452,7 @@ func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, insta
 	}
 
 	for _, user := range users.Items {
-		instance.Status.SubResourceCatalog = append(instance.Status.SubResourceCatalog, v1beta1.ResourceReference{
-			Kind:       user.Kind,
-			Name:       user.Name,
-			APIVersion: user.APIVersion,
-		})
+		instance = updateResourceCatalog(instance, &user)
 	}
 
 	for _, user := range users.Items {
@@ -510,11 +499,7 @@ func (r *GrowthbookInstanceReconciler) reconcileClients(ctx context.Context, ins
 	}
 
 	for _, client := range clients.Items {
-		instance.Status.SubResourceCatalog = append(instance.Status.SubResourceCatalog, v1beta1.ResourceReference{
-			Kind:       client.Kind,
-			Name:       client.Name,
-			APIVersion: client.APIVersion,
-		})
+		instance = updateResourceCatalog(instance, &client)
 	}
 
 	for _, client := range clients.Items {
@@ -577,6 +562,20 @@ func (r *GrowthbookInstanceReconciler) getClientToken(ctx context.Context, clien
 	} else {
 		return string(val), nil
 	}
+}
+
+func updateResourceCatalog(instance v1beta1.GrowthbookInstance, resource client.Object) v1beta1.GrowthbookInstance {
+	resRef := v1beta1.ResourceReference{
+		Kind:       resource.GetObjectKind().GroupVersionKind().Kind,
+		Name:       resource.GetName(),
+		APIVersion: fmt.Sprintf("%s/%s", resource.GetObjectKind().GroupVersionKind().Group, resource.GetObjectKind().GroupVersionKind().Version),
+	}
+
+	if !slices.Contains(instance.Status.SubResourceCatalog, resRef) {
+		instance.Status.SubResourceCatalog = append(instance.Status.SubResourceCatalog, resRef)
+	}
+
+	return instance
 }
 
 func (r *GrowthbookInstanceReconciler) getUsernamePassword(ctx context.Context, instance v1beta1.GrowthbookInstance, secretReference *v1beta1.SecretReference) (string, string, error) {
