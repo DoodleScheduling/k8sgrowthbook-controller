@@ -135,18 +135,10 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration != 0 && reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason && len(reconciledInstance.Status.SubResourceCatalog) == len(expectedStatus.SubResourceCatalog)
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
-
 		})
 
 		nameFeature := fmt.Sprintf("growthbookfeature-%s", randStringRunes(5))
@@ -217,17 +209,10 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration > 0 && len(reconciledInstance.Status.SubResourceCatalog) == len(expectedStatus.SubResourceCatalog)
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
 		})
 
 		It("Should update status.catalog with new GrowthbookClients added", func() {
@@ -320,17 +305,10 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration > 0 && len(reconciledInstance.Status.SubResourceCatalog) == len(expectedStatus.SubResourceCatalog)
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
 		})
 
 	})
@@ -455,17 +433,10 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration != 0 && reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
 		})
 
 		It("Should update condition to successful if the user credentials have been added", func() {
@@ -510,17 +481,10 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration > 0 && reconciledInstance.Status.Conditions[0].Status == "True"
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
 		})
 	})
 
@@ -565,18 +529,10 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration == expectedStatus.ObservedGeneration && reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
-
 		})
 	})
 
@@ -654,17 +610,22 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration != 0 && reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
 		})
 	})
 })
+
+func needStatus(reconciledInstance *v1beta1.GrowthbookInstance, expectedStatus *v1beta1.GrowthbookInstanceStatus) bool {
+	return reconciledInstance.Status.ObservedGeneration != 0 &&
+		reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason &&
+		reconciledInstance.Status.LastReconcileDuration.Duration > 0 &&
+		len(reconciledInstance.Status.Conditions) > 0 &&
+		reconciledInstance.Status.Conditions[0].Type == expectedStatus.Conditions[0].Type &&
+		reconciledInstance.Status.Conditions[0].Status == expectedStatus.Conditions[0].Status &&
+		reconciledInstance.Status.Conditions[0].ObservedGeneration == expectedStatus.Conditions[0].ObservedGeneration &&
+		reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason &&
+		reconciledInstance.Status.Conditions[0].Message == expectedStatus.Conditions[0].Message
+}
