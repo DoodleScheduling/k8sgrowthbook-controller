@@ -46,7 +46,14 @@ func (f *Feature) FromV1beta1(feature v1beta1.GrowthbookFeature) *Feature {
 	f.Tags = feature.Spec.Tags
 	f.DefaultValue = feature.Spec.DefaultValue
 	f.ValueType = FeatureValueType(feature.Spec.ValueType)
-	f.Environments = nil
+
+	if f.Environments == nil {
+		f.Environments = []string{}
+	}
+
+	if f.Tags == nil {
+		f.Tags = []string{}
+	}
 
 	f.EnvironmentSettings = make(map[string]EnvironmentSetting)
 	for _, env := range feature.Spec.Environments {

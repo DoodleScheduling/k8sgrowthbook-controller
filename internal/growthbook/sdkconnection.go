@@ -37,6 +37,11 @@ func (s *SDKConnection) FromV1beta1(client v1beta1.GrowthbookClient) *SDKConnect
 	s.IncludeVisualExperiments = client.Spec.IncludeVisualExperiments
 	s.IncludeDraftExperiments = client.Spec.IncludeDraftExperiments
 	s.IncludeExperimentNames = client.Spec.IncludeExperimentNames
+
+	if s.Languages == nil {
+		s.Languages = []string{}
+	}
+
 	return s
 }
 
