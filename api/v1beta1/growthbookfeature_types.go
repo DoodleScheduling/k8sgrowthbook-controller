@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -45,7 +43,7 @@ var (
 // GetID returns the feature ID which is the resource name if not overwritten by spec.ID
 func (f *GrowthbookFeature) GetID() string {
 	if f.Spec.ID == "" {
-		return fmt.Sprintf("%s-%s", f.Name, f.Namespace)
+		return f.Name
 	}
 
 	return f.Spec.ID

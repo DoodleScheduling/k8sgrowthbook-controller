@@ -3,7 +3,6 @@ package growthbook
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
@@ -30,7 +29,7 @@ func TestUserFromV1beta1(t *testing.T) {
 	f.FromV1beta1(apiSpec)
 	g.Expect(f.Email).To(Equal(apiSpec.Spec.Email))
 	g.Expect(f.Name).To(Equal(apiSpec.Name))
-	g.Expect(f.ID).To(Equal(fmt.Sprintf("%s-%s", apiSpec.Name, apiSpec.Namespace)))
+	g.Expect(f.ID).To(Equal(apiSpec.Name))
 
 	apiSpec.Spec.ID = "custom"
 	apiSpec.Spec.Name = "custom"

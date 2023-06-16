@@ -47,7 +47,7 @@ func MockProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, user
 var _ = Describe("GrowthbookInstance controller", func() {
 	const (
 		timeout  = time.Second * 20
-		interval = time.Millisecond * 350
+		interval = time.Millisecond * 600
 	)
 
 	When("reconciling a GrowthbookInstance with referencing organizations", func() {
@@ -135,6 +135,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
+				fmt.Printf("%#v\n", reconciledInstance)
 				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
@@ -209,6 +210,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
+				fmt.Printf("%#v\n", reconciledInstance.Status)
 				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
@@ -305,6 +307,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
+				fmt.Printf("%#v", reconciledInstance.Status)
 				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
@@ -623,6 +626,7 @@ func needStatus(reconciledInstance *v1beta1.GrowthbookInstance, expectedStatus *
 		reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason &&
 		reconciledInstance.Status.LastReconcileDuration.Duration > 0 &&
 		len(reconciledInstance.Status.Conditions) > 0 &&
+		len(reconciledInstance.Status.SubResourceCatalog) == len(expectedStatus.SubResourceCatalog) &&
 		reconciledInstance.Status.Conditions[0].Type == expectedStatus.Conditions[0].Type &&
 		reconciledInstance.Status.Conditions[0].Status == expectedStatus.Conditions[0].Status &&
 		reconciledInstance.Status.Conditions[0].ObservedGeneration == expectedStatus.Conditions[0].ObservedGeneration &&

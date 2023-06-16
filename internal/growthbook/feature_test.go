@@ -3,7 +3,6 @@ package growthbook
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -41,7 +40,7 @@ func TestFeatureFromV1beta1(t *testing.T) {
 
 	f := &Feature{}
 	f.FromV1beta1(apiSpec)
-	g.Expect(f.ID).To(Equal(fmt.Sprintf("%s-%s", apiSpec.Name, apiSpec.Namespace)))
+	g.Expect(f.ID).To(Equal(apiSpec.Name))
 	g.Expect(f.Description).To(Equal(apiSpec.Spec.Description))
 	g.Expect(f.Tags).To(Equal(apiSpec.Spec.Tags))
 	g.Expect(f.DefaultValue).To(Equal(apiSpec.Spec.DefaultValue))

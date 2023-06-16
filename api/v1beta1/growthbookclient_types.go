@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -40,7 +38,7 @@ type GrowthbookClientSpec struct {
 // GetID returns the client ID which is the resource name if not overwritten by spec.ID
 func (c *GrowthbookClient) GetID() string {
 	if c.Spec.ID == "" {
-		return fmt.Sprintf("%s-%s", c.Name, c.Namespace)
+		return c.Name
 	}
 
 	return c.Spec.ID

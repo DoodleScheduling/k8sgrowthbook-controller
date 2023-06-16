@@ -302,12 +302,12 @@ func (r *GrowthbookInstanceReconciler) Reconcile(ctx context.Context, req ctrl.R
 }
 
 func (r *GrowthbookInstanceReconciler) reconcile(ctx context.Context, instance v1beta1.GrowthbookInstance, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
-	msg := "reconcile instance progressing"
+	/*msg := "reconcile instance progressing"
 	r.Recorder.Event(&instance, "Normal", "info", msg)
 	instance = v1beta1.GrowthbookInstanceNotReady(instance, v1beta1.ProgressingReason, msg)
 	if err := r.patchStatus(ctx, &instance); err != nil {
 		return instance, err
-	}
+	}*/
 
 	var err error
 	var usr, pw string
