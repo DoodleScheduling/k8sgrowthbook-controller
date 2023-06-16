@@ -41,7 +41,6 @@ podAnnotations: {}
 
 metricsPort: "9556"
 probesPort: "9557"
-httpPort: "8080"
 
 # Change the metrics path
 metricsPath: /metrics
@@ -92,11 +91,6 @@ podSecurityContext:
   runAsGroup: 10000
   runAsNonRoot: true
   runAsUser: 10000
-
-service:
-  labels: {}
-  annotations: {}
-  type: ClusterIP
 
 serviceAccount:
   create: true

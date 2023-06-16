@@ -15,4 +15,4 @@ keywords:
 name: k8sgrowthbook-controller
 sources:
 - https://github.com/DoodleScheduling/k8sgrowthbook-controller
-version: 0.0.3
+version: 0.0.5
