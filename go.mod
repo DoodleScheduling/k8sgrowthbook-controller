@@ -10,6 +10,7 @@ require (
 	github.com/spf13/viper v1.15.0
 	go.mongodb.org/mongo-driver v1.11.7
 	golang.org/x/crypto v0.1.0
+	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
 	k8s.io/client-go v0.26.3

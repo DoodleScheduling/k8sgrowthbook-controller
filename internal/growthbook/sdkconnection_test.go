@@ -3,7 +3,6 @@ package growthbook
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -43,7 +42,7 @@ func TestSDKConnectionFromV1beta1(t *testing.T) {
 	g.Expect(f.IncludeDraftExperiments).To(Equal(apiSpec.Spec.IncludeDraftExperiments))
 	g.Expect(f.IncludeExperimentNames).To(Equal(apiSpec.Spec.IncludeExperimentNames))
 	g.Expect(f.Name).To(Equal(apiSpec.Name))
-	g.Expect(f.ID).To(Equal(fmt.Sprintf("%s-%s", apiSpec.Name, apiSpec.Namespace)))
+	g.Expect(f.ID).To(Equal(apiSpec.Name))
 
 	apiSpec.Spec.ID = "custom"
 	apiSpec.Spec.Name = "custom"

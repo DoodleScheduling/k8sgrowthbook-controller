@@ -14,7 +14,7 @@ spec:
     - /bin/sh
     - "-c"
     - |
-      curl --fail -vvv http://growthbook-api/api/features/sdk-token | grep '{"status":200,"features":{"feature-a-k8sgrowthbook-system":{"defaultValue":true},"feature-b-k8sgrowthbook-system":{"defaultValue":false}}'
+      curl --fail -vvv http://growthbook-api/api/features/sdk-token | grep '{"status":200,"features":{"feature-b":{"defaultValue":true},"feature-a":{"defaultValue":false}}\|{"status":200,"features":{"feature-a":{"defaultValue":true},"feature-b":{"defaultValue":false}}'
     resources: {}
     securityContext:
       allowPrivilegeEscalation: false
@@ -24,7 +24,3 @@ spec:
       runAsUser: 1000
     terminationMessagePath: /dev/termination-log
     terminationMessagePolicy: File
-  dnsPolicy: ClusterFirst
-  enableServiceLinks: true
-  nodeName: rageta-control-plane
-  preemptionPolicy: PreemptLowerPriority

@@ -102,4 +102,5 @@ jobs:
         run: |
           kubectl -n k8sgrowthbook-system get pods
           kubectl -n k8sgrowthbook-system logs deploy/k8sgrowthbook-controller
+          kubectl -n k8sgrowthbook-system logs verify
           kubectl -n k8sgrowthbook-system get growthbookinstance -o yaml

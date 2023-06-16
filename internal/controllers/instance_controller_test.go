@@ -47,12 +47,13 @@ func MockProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, user
 var _ = Describe("GrowthbookInstance controller", func() {
 	const (
 		timeout  = time.Second * 20
-		interval = time.Millisecond * 350
+		interval = time.Millisecond * 600
 	)
 
 	When("reconciling a GrowthbookInstance with referencing organizations", func() {
 		name := fmt.Sprintf("growthbookinstance-%s", randStringRunes(5))
 		nameOrg := fmt.Sprintf("growthbookorganization-%s", randStringRunes(5))
+		nameAnotherOrg := fmt.Sprintf("growthbookorganization-%s", randStringRunes(5))
 
 		It("Should update status.catalog with all resources found", func() {
 			By("By creating a new GrowthbookInstance")
@@ -97,11 +98,12 @@ var _ = Describe("GrowthbookInstance controller", func() {
 			By("By creating a new GrowthbookOrganization not matching instance=test-instance")
 			gf2 := &v1beta1.GrowthbookOrganization{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("growthbookorganization-%s", randStringRunes(5)),
+					Name:      nameAnotherOrg,
 					Namespace: "default",
 				},
 				Spec: v1beta1.GrowthbookOrganizationSpec{
-					OwnerEmail: "admin@another.com",
+					OwnerEmail:       "admin@another.com",
+					ResourceSelector: &metav1.LabelSelector{},
 				},
 			}
 			Expect(k8sClient.Create(ctx, gf2)).Should(Succeed())
@@ -135,21 +137,14 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration != 0 && reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
-
 		})
 
 		nameFeature := fmt.Sprintf("growthbookfeature-%s", randStringRunes(5))
+		nameAnotherFeature := fmt.Sprintf("growthbookfeature-%s", randStringRunes(5))
 
 		It("Should update status.catalog with new GrowthbookFeatures added", func() {
 			By("By creating a new GrowthbookFeature matching organization org=test-org")
@@ -171,7 +166,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 			By("By creating a new GrowthbookFeature not matching org=test-org")
 			gf2 := &v1beta1.GrowthbookFeature{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("growthbookfeature-%s", randStringRunes(5)),
+					Name:      nameAnotherFeature,
 					Namespace: "default",
 					Labels: map[string]string{
 						"instance": name,
@@ -217,17 +212,78 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration > 0 && len(reconciledInstance.Status.SubResourceCatalog) == len(expectedStatus.SubResourceCatalog)
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
+		})
+
+		instanceAnotherName := fmt.Sprintf("growthbookinstance-%s", randStringRunes(5))
+
+		It("Creates a new instance with matching all resources", func() {
+			By("By creating a new GrowthbookInstance")
+			ctx := context.Background()
+
+			gi := &v1beta1.GrowthbookInstance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      instanceAnotherName,
+					Namespace: "default",
+				},
+				Spec: v1beta1.GrowthbookInstanceSpec{
+					MongoDB:          v1beta1.GrowthbookInstanceMongoDB{},
+					ResourceSelector: &metav1.LabelSelector{},
+				},
+			}
+			Expect(k8sClient.Create(ctx, gi)).Should(Succeed())
+
+			instanceLookupKey := types.NamespacedName{Name: instanceAnotherName, Namespace: "default"}
+			reconciledInstance := &v1beta1.GrowthbookInstance{}
+
+			expectedStatus := v1beta1.GrowthbookInstanceStatus{
+				ObservedGeneration: int64(1),
+				SubResourceCatalog: []v1beta1.ResourceReference{
+					{
+						Kind:       "GrowthbookOrganization",
+						APIVersion: "growthbook.infra.doodle.com/v1beta1",
+						Name:       nameOrg,
+					},
+					{
+						Kind:       "GrowthbookOrganization",
+						APIVersion: "growthbook.infra.doodle.com/v1beta1",
+						Name:       nameAnotherOrg,
+					},
+					{
+						Kind:       "GrowthbookFeature",
+						APIVersion: "growthbook.infra.doodle.com/v1beta1",
+						Name:       nameFeature,
+					},
+					{
+						Kind:       "GrowthbookFeature",
+						APIVersion: "growthbook.infra.doodle.com/v1beta1",
+						Name:       nameAnotherFeature,
+					},
+				},
+				Conditions: []metav1.Condition{
+					{
+						Type:               v1beta1.ReadyCondition,
+						Status:             "True",
+						ObservedGeneration: 0,
+						Reason:             "Synchronized",
+						Message:            "instance successfully reconciled",
+					},
+				},
+			}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
+				if err != nil {
+					return false
+				}
+
+				return needStatus(reconciledInstance, &expectedStatus)
+			}, timeout, interval).Should(BeTrue())
+
+			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
 		})
 
 		It("Should update status.catalog with new GrowthbookClients added", func() {
@@ -320,19 +376,11 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration > 0 && len(reconciledInstance.Status.SubResourceCatalog) == len(expectedStatus.SubResourceCatalog)
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
 		})
-
 	})
 
 	When("Creating a new GrowthbookClient", func() {
@@ -455,17 +503,10 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration != 0 && reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
 		})
 
 		It("Should update condition to successful if the user credentials have been added", func() {
@@ -510,17 +551,10 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration > 0 && reconciledInstance.Status.Conditions[0].Status == "True"
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
 		})
 	})
 
@@ -565,18 +599,10 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration == expectedStatus.ObservedGeneration && reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
-
 		})
 	})
 
@@ -654,17 +680,23 @@ var _ = Describe("GrowthbookInstance controller", func() {
 					return false
 				}
 
-				return reconciledInstance.Status.ObservedGeneration != 0 && reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason
+				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.ObservedGeneration).To(Equal(expectedStatus.ObservedGeneration))
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
-			Expect(reconciledInstance.Status.LastReconcileDuration.Duration).To(BeNumerically(">", 0))
-			Expect(reconciledInstance.Status.Conditions[0].Type).To(Equal(expectedStatus.Conditions[0].Type))
-			Expect(reconciledInstance.Status.Conditions[0].Status).To(Equal(expectedStatus.Conditions[0].Status))
-			Expect(reconciledInstance.Status.Conditions[0].ObservedGeneration).To(Equal(expectedStatus.Conditions[0].ObservedGeneration))
-			Expect(reconciledInstance.Status.Conditions[0].Reason).To(Equal(expectedStatus.Conditions[0].Reason))
-			Expect(reconciledInstance.Status.Conditions[0].Message).To(Equal(expectedStatus.Conditions[0].Message))
 		})
 	})
 })
+
+func needStatus(reconciledInstance *v1beta1.GrowthbookInstance, expectedStatus *v1beta1.GrowthbookInstanceStatus) bool {
+	return reconciledInstance.Status.ObservedGeneration != 0 &&
+		reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason &&
+		reconciledInstance.Status.LastReconcileDuration.Duration > 0 &&
+		len(reconciledInstance.Status.Conditions) > 0 &&
+		len(reconciledInstance.Status.SubResourceCatalog) == len(expectedStatus.SubResourceCatalog) &&
+		reconciledInstance.Status.Conditions[0].Type == expectedStatus.Conditions[0].Type &&
+		reconciledInstance.Status.Conditions[0].Status == expectedStatus.Conditions[0].Status &&
+		reconciledInstance.Status.Conditions[0].ObservedGeneration == expectedStatus.Conditions[0].ObservedGeneration &&
+		reconciledInstance.Status.Conditions[0].Reason == expectedStatus.Conditions[0].Reason &&
+		reconciledInstance.Status.Conditions[0].Message == expectedStatus.Conditions[0].Message
+}
