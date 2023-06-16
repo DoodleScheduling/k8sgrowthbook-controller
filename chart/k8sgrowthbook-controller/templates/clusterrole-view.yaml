@@ -13,7 +13,15 @@ metadata:
     {{- toYaml .Values.annotations | nindent 4 }}
 rules:
 - apiGroups:
-  - "growthbook.infra.doodle.com"
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookclients
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - growthbook.infra.doodle.com
   resources:
   - growthbookfeatures
   verbs:
@@ -21,9 +29,33 @@ rules:
   - list
   - watch
 - apiGroups:
-  - "growthbook.infra.doodle.com"
+  - growthbook.infra.doodle.com
   resources:
-  - growthbookfeatures/status
+  - growthbookinstances
   verbs:
   - get
+  - list
+  - watch
+- apiGroups:
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookinstances/status
+  verbs:
+  - get
+- apiGroups:
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookorganizations
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookusers
+  verbs:
+  - get
+  - list
+  - watch
 {{- end }}

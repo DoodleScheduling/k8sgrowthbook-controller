@@ -14,13 +14,32 @@ rules:
 - apiGroups:
   - ""
   resources:
-    - services
+  - events
   verbs:
-    - get
-    - list
-    - watch
+  - create
+  - patch
 - apiGroups:
-  - "growthbook.infra.doodle.com"
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookclients
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - growthbook.infra.doodle.com
   resources:
   - growthbookfeatures
   verbs:
@@ -32,17 +51,41 @@ rules:
   - update
   - watch
 - apiGroups:
-  - "growthbook.infra.doodle.com"
+  - growthbook.infra.doodle.com
   resources:
-  - growthbookfeatures/status
+  - growthbookinstances
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookinstances/status
   verbs:
   - get
   - patch
   - update
 - apiGroups:
-  - ""
+  - growthbook.infra.doodle.com
   resources:
-  - events
+  - growthbookorganizations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - growthbook.infra.doodle.com
+  resources:
+  - growthbookusers
   verbs:
   - create
   - delete
