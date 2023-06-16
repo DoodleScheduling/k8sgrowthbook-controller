@@ -41,6 +41,10 @@ func UpdateOrganization(ctx context.Context, org Organization, db storage.Databa
 	err := col.FindOne(ctx, filter, &existing)
 
 	if err != nil {
+		if org.Members == nil {
+			org.Members = []OrganizationMember{}
+		}
+
 		org.DateCreated = time.Now()
 		return col.InsertOne(ctx, org)
 	}
@@ -54,7 +58,11 @@ func UpdateOrganization(ctx context.Context, org Organization, db storage.Databa
 	existing.OwnerEmail = org.OwnerEmail
 	existing.Name = org.Name
 	existing.ID = org.ID
-	existing.Members = org.Members
+
+	//If any GrowthbooUser is found the org membership will be managed by the controller
+	if org.Members != nil {
+		existing.Members = org.Members
+	}
 
 	updateBson, err := bson.Marshal(existing)
 	if err != nil {

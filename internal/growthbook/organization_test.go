@@ -59,6 +59,7 @@ func TestOrganizationCreateIfNotExists(t *testing.T) {
 	err := UpdateOrganization(context.TODO(), Organization, db)
 	g.Expect(err).To(BeNil())
 	g.Expect(insertedDoc.ID).To(Equal(Organization.ID))
+	g.Expect(insertedDoc.Members).To(Equal([]OrganizationMember{}))
 }
 
 func TestOrganizationNoUpdate(t *testing.T) {
@@ -84,11 +85,21 @@ func TestOrganizationUpdate(t *testing.T) {
 
 	var updateFilter interface{}
 	var updateDoc interface{}
+	var find bson.Raw
 
 	db := &MockDatabase{
 		FindOne: func(ctx context.Context, filter, dst interface{}) error {
 			dst.(*Organization).ID = "id"
 			dst.(*Organization).OwnerEmail = "old@mail.com"
+			dst.(*Organization).Members = []OrganizationMember{
+				{
+					ID: "user",
+				},
+			}
+
+			f, _ := bson.Marshal(dst)
+			find = f
+
 			return nil
 		},
 		UpdateOne: func(ctx context.Context, filter, doc interface{}) error {
@@ -114,7 +125,9 @@ func TestOrganizationUpdate(t *testing.T) {
 	updateDocSet := updateDoc.(primitive.D)
 	updateBSON := updateDocSet[0].Value.(bson.Raw)
 	newOwnerEmailValue := updateBSON.Lookup("ownerEmail")
+	newMemberValue := updateBSON.Lookup("members")
 
 	g.Expect(newOwnerEmailValue).To(Equal(bson.Raw(expectedDoc).Lookup("ownerEmail")))
+	g.Expect(newMemberValue).To(Equal(find.Lookup("members")))
 	g.Expect(updateFilter).To(Equal(expectedFilter))
 }
