@@ -88,7 +88,7 @@ securityContext:
     drop: ["all"]
   readOnlyRootFilesystem: true
 
-podSecurityContext:  
+podSecurityContext:
   runAsGroup: 10000
   runAsNonRoot: true
   runAsUser: 10000
@@ -146,5 +146,5 @@ kubeRBACProxy:
   # requests:
   #   cpu: 5m
   #   memory: 64Mi
-    
+
 tolerations: []
