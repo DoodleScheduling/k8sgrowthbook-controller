@@ -1,5 +1,5 @@
 apiVersion: v2
-appVersion: v0.0.4
+appVersion: v0.1.0
 description: Kubernetes controller for managing growthbook
 home: https://github.com/DoodleScheduling/k8sgrowthbook-controller
 maintainers:
@@ -15,4 +15,4 @@ keywords:
 name: k8sgrowthbook-controller
 sources:
 - https://github.com/DoodleScheduling/k8sgrowthbook-controller
-version: 0.0.8
+version: 0.1.0
