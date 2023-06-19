@@ -77,12 +77,12 @@ func UpdateSDKConnection(ctx context.Context, sdkconnection SDKConnection, db st
 		sdkconnection.DateCreated = time.Now()
 		sdkconnection.DateUpdated = sdkconnection.DateCreated
 
-		encryptionKey, err := GenerateKey("", 32)
+		encryptionKey, err := generateKey("", 32)
 		if err != nil {
 			return err
 		}
 
-		signingKey, err := GenerateKey("", 32)
+		signingKey, err := generateKey("", 32)
 		if err != nil {
 			return err
 		}
@@ -142,7 +142,7 @@ func UpdateSDKConnection(ctx context.Context, sdkconnection SDKConnection, db st
 	return clearPayloadCache()
 }
 
-func GenerateKey(prefix string, n int) (string, error) {
+func generateKey(prefix string, n int) (string, error) {
 	b := make([]byte, n)
 	_, err := rand.Read(b)
 	if err != nil {

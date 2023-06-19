@@ -75,6 +75,8 @@ func TestSDKConnectionCreateIfNotExists(t *testing.T) {
 	err := UpdateSDKConnection(context.TODO(), SDKConnection, db)
 	g.Expect(err).To(BeNil())
 	g.Expect(insertedDoc.ID).To(Equal(SDKConnection.ID))
+	g.Expect(insertedDoc.EncryptionKey).To(Not(Equal("")))
+	g.Expect(insertedDoc.Proxy.SigningKey).To(Not(Equal("")))
 }
 
 func TestSDKConnectionNoUpdate(t *testing.T) {
@@ -100,10 +102,17 @@ func TestSDKConnectionUpdate(t *testing.T) {
 
 	var updateFilter interface{}
 	var updateDoc interface{}
+	var find bson.Raw
 
 	db := &MockDatabase{
 		FindOne: func(ctx context.Context, filter, dst interface{}) error {
 			dst.(*SDKConnection).ID = "id"
+			dst.(*SDKConnection).EncryptionKey = "key-x"
+			dst.(*SDKConnection).Proxy.SigningKey = "key-y"
+
+			f, _ := bson.Marshal(dst)
+			find = f
+
 			return nil
 		},
 		UpdateOne: func(ctx context.Context, filter, doc interface{}) error {
@@ -137,6 +146,12 @@ func TestSDKConnectionUpdate(t *testing.T) {
 
 	g.Expect(newEncryptPayloadValue).To(Equal(bson.Raw(expectedDoc).Lookup("encryptPayload")))
 	dateUpdated := newDateUpdatedValue.Time()
+
+	newEncryptionKeyValue := updateBSON.Lookup("encryptionKey")
+	g.Expect(newEncryptionKeyValue).To(Equal(find.Lookup("encryptionKey")))
+
+	newProxySigningKey := updateBSON.Lookup("proxy.signingKey")
+	g.Expect(newProxySigningKey).To(Equal(find.Lookup("proxy.signingKey")))
 
 	g.Expect(dateUpdated.After(beforeUpdate)).To(BeTrue())
 	g.Expect(updateFilter).To(Equal(expectedFilter))

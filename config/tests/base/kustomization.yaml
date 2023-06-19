@@ -5,4 +5,4 @@ resources:
 - growthbook/backend
 - mongodb
 - catalog.yaml
-- verify.yaml
+- verify-get-features-clienttoken.yaml
