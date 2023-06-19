@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: proxy
+spec:
+  selector:
+    matchLabels: {}
+  strategy:
+    type: RollingUpdate
+  template:
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: growthbook
+          image: growthbook/proxy:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3300
+              protocol: TCP
+          env:
+            - name: GROWTHBOOK_API_HOST
+              value: "http://growthbook-api"
+            - name: SECRET_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: growthbook-backend
+                  key: SECRET_API_KEY
+            - name: NODE_ENV
+              value: "production"
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 3300
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 3300
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+            periodSeconds: 10
+          resources: {}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
