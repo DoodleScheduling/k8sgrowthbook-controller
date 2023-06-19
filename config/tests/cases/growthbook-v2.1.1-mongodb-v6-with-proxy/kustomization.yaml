@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: k8sgrowthbook-system
+
+resources:
+- ../../base
+- ../../base/growthbook/proxy
+- verify-proxy-get-features-clienttoken.yaml
+
+images:
+- name: growthbook/growthbook
+  newTag: 2.1.1
+- name: growthbook/proxy
+  newTag: git-8c6bfad
+
+patches:
+- target:
+    kind: ConfigMap
+    name: envs
+  patch: |-
+    - op: replace
+      path: /data/PROXY_ENABLED
+      value: "1"
+    - op: replace
+      path: /data/PROXY_HOST_INTERNAL
+      value: "http://growthbook-proxy"
+    - op: replace
+      path: /data/PROXY_HOST_PUBLIC
+      value: "http://growthbook-proxy"

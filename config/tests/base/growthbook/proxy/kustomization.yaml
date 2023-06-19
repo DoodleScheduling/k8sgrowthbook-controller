@@ -3,11 +3,7 @@ kind: Kustomization
 namePrefix: growthbook-
 commonLabels:
   app: growthbook
-  component: backend
+  component: proxy
 resources:
-- api-service.yaml
-- config-cm.yaml
 - deployment.yaml
-- envs-cm.yaml
-- secret.yaml
 - service.yaml

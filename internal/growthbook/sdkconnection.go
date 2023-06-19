@@ -3,6 +3,9 @@ package growthbook
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"strings"
 	"time"
 
 	"github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
@@ -11,20 +14,26 @@ import (
 )
 
 type SDKConnection struct {
-	ID                       string    `bson:"id"`
-	Key                      string    `bson:"key"`
-	Languages                []string  `bson:"languages"`
-	Name                     string    `bson:"name"`
-	Environment              string    `bson:"environment"`
-	EncryptPayload           bool      `bson:"encryptPayload"`
-	Organization             string    `bson:"organization"`
-	Project                  string    `bson:"project"`
-	IncludeVisualExperiments bool      `bson:"includeVisualExperiments"`
-	IncludeDraftExperiments  bool      `bson:"includeDraftExperiments"`
-	IncludeExperimentNames   bool      `bson:"includeExperimentNames"`
-	DateCreated              time.Time `bson:"dateCreated"`
-	DateUpdated              time.Time `bson:"dateUpdated"`
-	Revision                 int       `bson:"__v"`
+	ID                       string             `bson:"id"`
+	Key                      string             `bson:"key"`
+	Languages                []string           `bson:"languages"`
+	Name                     string             `bson:"name"`
+	Environment              string             `bson:"environment"`
+	EncryptPayload           bool               `bson:"encryptPayload"`
+	EncryptionKey            string             `bson:"encryptionKey"`
+	Organization             string             `bson:"organization"`
+	Project                  string             `bson:"project"`
+	IncludeVisualExperiments bool               `bson:"includeVisualExperiments"`
+	IncludeDraftExperiments  bool               `bson:"includeDraftExperiments"`
+	IncludeExperimentNames   bool               `bson:"includeExperimentNames"`
+	DateCreated              time.Time          `bson:"dateCreated"`
+	DateUpdated              time.Time          `bson:"dateUpdated"`
+	Proxy                    SDKConnectionProxy `bson:"proxy"`
+	Revision                 int                `bson:"__v"`
+}
+
+type SDKConnectionProxy struct {
+	SigningKey string `bson:"signingKey"`
 }
 
 func (s *SDKConnection) FromV1beta1(client v1beta1.GrowthbookClient) *SDKConnection {
@@ -68,7 +77,20 @@ func UpdateSDKConnection(ctx context.Context, sdkconnection SDKConnection, db st
 		sdkconnection.DateCreated = time.Now()
 		sdkconnection.DateUpdated = sdkconnection.DateCreated
 
-		err := col.InsertOne(ctx, sdkconnection)
+		encryptionKey, err := generateKey("", 32)
+		if err != nil {
+			return err
+		}
+
+		signingKey, err := generateKey("", 32)
+		if err != nil {
+			return err
+		}
+
+		sdkconnection.EncryptionKey = encryptionKey
+		sdkconnection.Proxy.SigningKey = signingKey
+
+		err = col.InsertOne(ctx, sdkconnection)
 		if err != nil {
 			return err
 		}
@@ -118,4 +140,15 @@ func UpdateSDKConnection(ctx context.Context, sdkconnection SDKConnection, db st
 	}
 
 	return clearPayloadCache()
+}
+
+func generateKey(prefix string, n int) (string, error) {
+	b := make([]byte, n)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+
+	e := base64.StdEncoding.EncodeToString(b)
+	return prefix + strings.Replace(strings.Replace(strings.Replace(e, "=", "", -1), "/", "", -1), "+", "", -1), nil
 }
