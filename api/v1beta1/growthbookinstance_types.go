@@ -29,7 +29,7 @@ type GrowthbookInstanceSpec struct {
 	Interval *metav1.Duration `json:"interval,omitempty"`
 
 	// Prune
-	// +kubebuilder:validation:Required"
+	// +kubebuilder:validation:Required
 	Prune bool `json:"prune"`
 
 	// Timeout while reconciling the instance
