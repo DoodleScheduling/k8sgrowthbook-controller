@@ -51,6 +51,28 @@ func TestSDKConnectionFromV1beta1(t *testing.T) {
 	g.Expect(f.Name).To(Equal(apiSpec.Spec.Name))
 }
 
+func TestSDKConnectionDelete(t *testing.T) {
+	g := NewWithT(t)
+
+	var deleteFilter bson.M
+	db := &MockDatabase{
+		DeleteOne: func(ctx context.Context, filter interface{}) error {
+			deleteFilter = filter.(bson.M)
+			return nil
+		},
+	}
+
+	sdkconnection := SDKConnection{
+		ID: "sdkconnection",
+	}
+
+	err := DeleteSDKConnection(context.TODO(), sdkconnection, db)
+	g.Expect(err).To(BeNil())
+	g.Expect(deleteFilter).To(Equal(bson.M{
+		"id": "sdkconnection",
+	}))
+}
+
 func TestSDKConnectionCreateIfNotExists(t *testing.T) {
 	g := NewWithT(t)
 

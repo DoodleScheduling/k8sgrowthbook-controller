@@ -14,6 +14,7 @@ var (
 
 type MockDatabase struct {
 	FindOne    func(ctx context.Context, filter interface{}, dst interface{}) error
+	DeleteOne  func(ctx context.Context, filter interface{}) error
 	InsertOne  func(ctx context.Context, doc interface{}) error
 	UpdateOne  func(ctx context.Context, filter interface{}, doc interface{}) error
 	DeleteMany func(ctx context.Context, filter interface{}) error
@@ -35,6 +36,14 @@ func (c *MockCollection) FindOne(ctx context.Context, filter interface{}, dst in
 	}
 
 	return c.db.FindOne(ctx, filter, dst)
+}
+
+func (c *MockCollection) DeleteOne(ctx context.Context, filter interface{}) error {
+	if c.db.DeleteOne == nil {
+		return errors.New("no mock func for deleteOne provided")
+	}
+
+	return c.db.DeleteOne(ctx, filter)
 }
 
 func (c *MockCollection) InsertOne(ctx context.Context, doc interface{}) error {

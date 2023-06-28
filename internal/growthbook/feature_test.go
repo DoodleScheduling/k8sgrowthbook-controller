@@ -53,6 +53,28 @@ func TestFeatureFromV1beta1(t *testing.T) {
 	g.Expect(f.ID).To(Equal(apiSpec.Spec.ID))
 }
 
+func TestFeatureDelete(t *testing.T) {
+	g := NewWithT(t)
+
+	var deleteFilter bson.M
+	db := &MockDatabase{
+		DeleteOne: func(ctx context.Context, filter interface{}) error {
+			deleteFilter = filter.(bson.M)
+			return nil
+		},
+	}
+
+	feature := Feature{
+		ID: "feature",
+	}
+
+	err := DeleteFeature(context.TODO(), feature, db)
+	g.Expect(err).To(BeNil())
+	g.Expect(deleteFilter).To(Equal(bson.M{
+		"id": "feature",
+	}))
+}
+
 func TestFeatureCreateIfNotExists(t *testing.T) {
 	g := NewWithT(t)
 

@@ -28,6 +28,10 @@ type GrowthbookInstanceSpec struct {
 	// Interval reconciliation
 	Interval *metav1.Duration `json:"interval,omitempty"`
 
+	// Prune
+	// +kubebuilder:validation:Required
+	Prune bool `json:"prune"`
+
 	// Timeout while reconciling the instance
 	// +kubebuilder:default:="5m"
 	Timeout *metav1.Duration `json:"timeout,omitempty"`

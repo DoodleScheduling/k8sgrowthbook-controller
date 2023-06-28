@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -62,6 +63,7 @@ const (
 	secretIndexKey = ".metadata.secret"
 	usersIndexKey  = ".metadata.users"
 	orgsIndexKey   = ".metadata.orgs"
+	owner          = "k8sgrowthbook-controller"
 )
 
 // MongoDBProvider returns a storage.Database for MongoDB
@@ -257,6 +259,11 @@ func (r *GrowthbookInstanceReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
+	// examine DeletionTimestamp to determine if object is under deletion
+	if err := r.addFinalizer(ctx, v1beta1.Finalizer, metav1.PartialObjectMetadata{TypeMeta: instance.TypeMeta, ObjectMeta: instance.ObjectMeta}); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	start := time.Now()
 
 	reconcileContext := ctx
@@ -282,6 +289,14 @@ func (r *GrowthbookInstanceReconciler) Reconcile(ctx context.Context, req ctrl.R
 		res = ctrl.Result{Requeue: true}
 		instance = v1beta1.GrowthbookInstanceNotReady(instance, v1beta1.FailedReason, err.Error())
 	} else {
+		if !instance.DeletionTimestamp.IsZero() {
+			if err := r.removeFinalizer(ctx, v1beta1.Finalizer, metav1.PartialObjectMetadata{TypeMeta: instance.TypeMeta, ObjectMeta: instance.ObjectMeta}); err != nil {
+				return res, err
+			} else {
+				return ctrl.Result{}, nil
+			}
+		}
+
 		if instance.Spec.Interval != nil {
 			res = ctrl.Result{
 				RequeueAfter: instance.Spec.Interval.Duration,
@@ -303,6 +318,7 @@ func (r *GrowthbookInstanceReconciler) Reconcile(ctx context.Context, req ctrl.R
 }
 
 func (r *GrowthbookInstanceReconciler) reconcile(ctx context.Context, instance v1beta1.GrowthbookInstance, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
+	//TODO there is a test race condition with this one, leaving for now
 	/*msg := "reconcile instance progressing"
 	r.Recorder.Event(&instance, "Normal", "info", msg)
 	instance = v1beta1.GrowthbookInstanceNotReady(instance, v1beta1.ProgressingReason, msg)
@@ -353,6 +369,8 @@ func (r *GrowthbookInstanceReconciler) reconcile(ctx context.Context, instance v
 
 func (r *GrowthbookInstanceReconciler) reconcileOrganizations(ctx context.Context, instance v1beta1.GrowthbookInstance, db storage.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, []v1beta1.GrowthbookOrganization, error) {
 	var orgs v1beta1.GrowthbookOrganizationList
+	finalizerName := fmt.Sprintf("%s/%s.%s", v1beta1.Finalizer, instance.Name, instance.Namespace)
+
 	selector, err := metav1.LabelSelectorAsSelector(instance.Spec.ResourceSelector)
 	if err != nil {
 		return instance, nil, err
@@ -363,8 +381,16 @@ func (r *GrowthbookInstanceReconciler) reconcileOrganizations(ctx context.Contex
 		return instance, nil, err
 	}
 
-	for _, org := range orgs.Items {
-		instance = updateResourceCatalog(instance, &org)
+	if instance.DeletionTimestamp.IsZero() {
+		for _, org := range orgs.Items {
+			if err := r.addFinalizer(ctx, finalizerName, metav1.PartialObjectMetadata{TypeMeta: org.TypeMeta, ObjectMeta: org.ObjectMeta}); err != nil {
+				return instance, nil, err
+			}
+
+			if org.DeletionTimestamp.IsZero() {
+				instance = updateResourceCatalog(instance, &org)
+			}
+		}
 	}
 
 	for _, org := range orgs.Items {
@@ -391,8 +417,20 @@ func (r *GrowthbookInstanceReconciler) reconcileOrganizations(ctx context.Contex
 			}
 		}
 
-		if err := growthbook.UpdateOrganization(ctx, o, db); err != nil {
-			return instance, nil, err
+		if org.DeletionTimestamp.IsZero() && instance.DeletionTimestamp.IsZero() {
+			if err := growthbook.UpdateOrganization(ctx, o, db); err != nil {
+				return instance, nil, err
+			}
+		} else {
+			if instance.Spec.Prune {
+				if err := growthbook.DeleteOrganization(ctx, o, db); err != nil {
+					return instance, nil, err
+				}
+			}
+
+			if err := r.removeFinalizer(ctx, finalizerName, metav1.PartialObjectMetadata{TypeMeta: org.TypeMeta, ObjectMeta: org.ObjectMeta}); err != nil {
+				return instance, nil, err
+			}
 		}
 	}
 
@@ -406,6 +444,7 @@ func (r *GrowthbookInstanceReconciler) reconcileFeatures(ctx context.Context, in
 		return instance, err
 	}
 
+	finalizerName := fmt.Sprintf("%s/%s.%s", v1beta1.Finalizer, instance.Name, instance.Namespace)
 	instanceSelector, err := metav1.LabelSelectorAsSelector(instance.Spec.ResourceSelector)
 	if err != nil {
 		return instance, err
@@ -419,28 +458,72 @@ func (r *GrowthbookInstanceReconciler) reconcileFeatures(ctx context.Context, in
 		return instance, err
 	}
 
-	for _, feature := range features.Items {
-		instance = updateResourceCatalog(instance, &feature)
+	if instance.DeletionTimestamp.IsZero() {
+		for _, feature := range features.Items {
+			if err := r.addFinalizer(ctx, finalizerName, metav1.PartialObjectMetadata{TypeMeta: feature.TypeMeta, ObjectMeta: feature.ObjectMeta}); err != nil {
+				return instance, err
+			}
+
+			if feature.DeletionTimestamp.IsZero() {
+				instance = updateResourceCatalog(instance, &feature)
+			}
+		}
 	}
 
 	for _, feature := range features.Items {
 		f := growthbook.Feature{
-			Owner:        "k8sgrowthbook-controller",
+			Owner:        owner,
 			Organization: org.GetID(),
 		}
 
 		f.FromV1beta1(feature)
 
-		if err := growthbook.UpdateFeature(ctx, f, db); err != nil {
-			return instance, err
+		if feature.DeletionTimestamp.IsZero() && instance.DeletionTimestamp.IsZero() {
+			if err := growthbook.UpdateFeature(ctx, f, db); err != nil {
+				return instance, err
+			}
+		} else {
+			if instance.Spec.Prune {
+				if err := growthbook.DeleteFeature(ctx, f, db); err != nil {
+					return instance, err
+				}
+			}
+
+			if err := r.removeFinalizer(ctx, finalizerName, metav1.PartialObjectMetadata{TypeMeta: feature.TypeMeta, ObjectMeta: feature.ObjectMeta}); err != nil {
+				return instance, err
+			}
 		}
 	}
 
 	return instance, nil
 }
 
+func (r *GrowthbookInstanceReconciler) addFinalizer(ctx context.Context, finalizerName string, obj metav1.PartialObjectMetadata) error {
+	if !obj.GetDeletionTimestamp().IsZero() {
+		return nil
+	}
+
+	controllerutil.AddFinalizer(&obj, finalizerName)
+	if err := r.patch(ctx, &obj); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *GrowthbookInstanceReconciler) removeFinalizer(ctx context.Context, finalizerName string, obj metav1.PartialObjectMetadata) error {
+	controllerutil.RemoveFinalizer(&obj, finalizerName)
+	if err := r.patch(ctx, &obj); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, instance v1beta1.GrowthbookInstance, db storage.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
 	var users v1beta1.GrowthbookUserList
+	finalizerName := fmt.Sprintf("%s/%s.%s", v1beta1.Finalizer, instance.Name, instance.Namespace)
+
 	selector, err := metav1.LabelSelectorAsSelector(instance.Spec.ResourceSelector)
 	if err != nil {
 		return instance, err
@@ -451,27 +534,49 @@ func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, insta
 		return instance, err
 	}
 
-	for _, user := range users.Items {
-		instance = updateResourceCatalog(instance, &user)
+	if instance.DeletionTimestamp.IsZero() {
+		for _, user := range users.Items {
+			if err := r.addFinalizer(ctx, finalizerName, metav1.PartialObjectMetadata{TypeMeta: user.TypeMeta, ObjectMeta: user.ObjectMeta}); err != nil {
+				return instance, err
+			}
+
+			if user.DeletionTimestamp.IsZero() {
+				instance = updateResourceCatalog(instance, &user)
+			}
+		}
 	}
 
 	for _, user := range users.Items {
-		username, password, err := r.getOptionalUsernamePassword(ctx, instance, user.Spec.Secret)
-		if err != nil {
-			return instance, err
-		}
-
 		u := growthbook.User{}
-		if username != "" {
-			u.Email = username
-		}
+		u.FromV1beta1(user)
 
-		if err := u.FromV1beta1(user).SetPassword(ctx, db, password); err != nil {
-			return instance, err
-		}
+		if user.DeletionTimestamp.IsZero() && instance.DeletionTimestamp.IsZero() {
+			username, password, err := r.getOptionalUsernamePassword(ctx, instance, user.Spec.Secret)
+			if err != nil {
+				return instance, err
+			}
 
-		if err := growthbook.UpdateUser(ctx, u, db); err != nil {
-			return instance, err
+			if username != "" {
+				u.Email = username
+			}
+
+			if err := u.SetPassword(ctx, db, password); err != nil {
+				return instance, err
+			}
+
+			if err := growthbook.UpdateUser(ctx, u, db); err != nil {
+				return instance, err
+			}
+		} else {
+			if instance.Spec.Prune {
+				if err := growthbook.DeleteUser(ctx, u, db); err != nil {
+					return instance, err
+				}
+			}
+
+			if err := r.removeFinalizer(ctx, finalizerName, metav1.PartialObjectMetadata{TypeMeta: user.TypeMeta, ObjectMeta: user.ObjectMeta}); err != nil {
+				return instance, err
+			}
 		}
 	}
 
@@ -480,6 +585,8 @@ func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, insta
 
 func (r *GrowthbookInstanceReconciler) reconcileClients(ctx context.Context, instance v1beta1.GrowthbookInstance, org v1beta1.GrowthbookOrganization, db storage.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
 	var clients v1beta1.GrowthbookClientList
+	finalizerName := fmt.Sprintf("%s/%s.%s", v1beta1.Finalizer, instance.Name, instance.Namespace)
+
 	selector, err := metav1.LabelSelectorAsSelector(org.Spec.ResourceSelector)
 	if err != nil {
 		return instance, err
@@ -498,30 +605,52 @@ func (r *GrowthbookInstanceReconciler) reconcileClients(ctx context.Context, ins
 		return instance, err
 	}
 
-	for _, client := range clients.Items {
-		instance = updateResourceCatalog(instance, &client)
+	if instance.DeletionTimestamp.IsZero() {
+		for _, client := range clients.Items {
+			if err := r.addFinalizer(ctx, finalizerName, metav1.PartialObjectMetadata{TypeMeta: client.TypeMeta, ObjectMeta: client.ObjectMeta}); err != nil {
+				return instance, err
+			}
+
+			if client.DeletionTimestamp.IsZero() {
+				instance = updateResourceCatalog(instance, &client)
+			}
+		}
 	}
 
 	for _, client := range clients.Items {
-		token, err := r.getClientToken(ctx, client)
-		if err != nil {
-			return instance, err
-		}
-
-		if token[:4] != "sdk-" {
-			token = fmt.Sprintf("sdk-%s", token)
-		}
-
 		s := growthbook.SDKConnection{
 			Organization: org.GetID(),
-			Key:          token,
 		}
 
 		s.FromV1beta1(client)
 
-		if err := growthbook.UpdateSDKConnection(ctx, s, db); err != nil {
-			return instance, err
+		if client.DeletionTimestamp.IsZero() && instance.DeletionTimestamp.IsZero() {
+			token, err := r.getClientToken(ctx, client)
+			if err != nil {
+				return instance, err
+			}
+
+			if token[:4] != "sdk-" {
+				token = fmt.Sprintf("sdk-%s", token)
+			}
+
+			s.Key = token
+
+			if err := growthbook.UpdateSDKConnection(ctx, s, db); err != nil {
+				return instance, err
+			}
+		} else {
+			if instance.Spec.Prune {
+				if err := growthbook.DeleteSDKConnection(ctx, s, db); err != nil {
+					return instance, err
+				}
+			}
+
+			if err := r.removeFinalizer(ctx, finalizerName, metav1.PartialObjectMetadata{TypeMeta: client.TypeMeta, ObjectMeta: client.ObjectMeta}); err != nil {
+				return instance, err
+			}
 		}
+
 	}
 
 	return instance, nil
@@ -642,6 +771,19 @@ func (r *GrowthbookInstanceReconciler) getOptionalUsernamePassword(ctx context.C
 	}
 
 	return user, pw, nil
+}
+
+func (r *GrowthbookInstanceReconciler) patch(ctx context.Context, obj *metav1.PartialObjectMetadata) error {
+	key := client.ObjectKeyFromObject(obj)
+	latest := &metav1.PartialObjectMetadata{
+		TypeMeta: obj.TypeMeta,
+	}
+
+	if err := r.Client.Get(ctx, key, latest); err != nil {
+		return err
+	}
+
+	return r.Client.Patch(ctx, obj, client.MergeFrom(latest))
 }
 
 func (r *GrowthbookInstanceReconciler) patchStatus(ctx context.Context, instance *v1beta1.GrowthbookInstance) error {

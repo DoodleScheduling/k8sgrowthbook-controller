@@ -3,9 +3,10 @@ kind: Kustomization
 namespace: k8sgrowthbook-system
 
 resources:
-- ../../base
-- ../../base/growthbook/proxy
-- verify-proxy-get-features-clienttoken.yaml
+- ../../../base/mongodb
+- ../../../base/growthbook/backend
+- ../../../base/growthbook/proxy
+- ../../../base/growthbook-controller
 
 images:
 - name: growthbook/growthbook

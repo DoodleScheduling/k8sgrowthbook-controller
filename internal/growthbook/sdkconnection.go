@@ -54,6 +54,15 @@ func (s *SDKConnection) FromV1beta1(client v1beta1.GrowthbookClient) *SDKConnect
 	return s
 }
 
+func DeleteSDKConnection(ctx context.Context, sdkconnection SDKConnection, db storage.Database) error {
+	col := db.Collection("sdkconnections")
+	filter := bson.M{
+		"id": sdkconnection.ID,
+	}
+
+	return col.DeleteOne(ctx, filter)
+}
+
 func UpdateSDKConnection(ctx context.Context, sdkconnection SDKConnection, db storage.Database) error {
 	col := db.Collection("sdkconnections")
 	filter := bson.M{
