@@ -67,6 +67,15 @@ func (u *User) SetPassword(ctx context.Context, db storage.Database, password st
 	return nil
 }
 
+func DeleteUser(ctx context.Context, user User, db storage.Database) error {
+	col := db.Collection("users")
+	filter := bson.M{
+		"id": user.ID,
+	}
+
+	return col.DeleteOne(ctx, filter)
+}
+
 func UpdateUser(ctx context.Context, user User, db storage.Database) error {
 	col := db.Collection("users")
 	filter := bson.M{

@@ -71,6 +71,9 @@ spec:
                     description: Address is a MongoDB comptaible URI `mongodb://xxx`
                     type: string
                 type: object
+              prune:
+                description: Prune
+                type: boolean
               resourceSelector:
                 description: ResourceSelector defines a selector to select Growthbook
                   resources associated with this instance
@@ -124,6 +127,8 @@ spec:
                 default: 5m
                 description: Timeout while reconciling the instance
                 type: string
+            required:
+            - prune
             type: object
           status:
             description: GrowthbookInstanceStatus defines the observed state of GrowthbookInstance

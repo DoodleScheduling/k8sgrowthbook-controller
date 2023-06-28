@@ -65,6 +65,15 @@ func (f *Feature) FromV1beta1(feature v1beta1.GrowthbookFeature) *Feature {
 	return f
 }
 
+func DeleteFeature(ctx context.Context, feature Feature, db storage.Database) error {
+	col := db.Collection("features")
+	filter := bson.M{
+		"id": feature.ID,
+	}
+
+	return col.DeleteOne(ctx, filter)
+}
+
 func UpdateFeature(ctx context.Context, feature Feature, db storage.Database) error {
 	col := db.Collection("features")
 	filter := bson.M{

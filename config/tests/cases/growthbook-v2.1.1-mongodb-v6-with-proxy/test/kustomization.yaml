@@ -3,8 +3,5 @@ kind: Kustomization
 namespace: k8sgrowthbook-system
 
 resources:
-- ../../base
-
-images:
-- name: growthbook/growthbook
-  newTag: 2.1.1
+- ../../../base/catalog
+- verify-proxy-get-features-clienttoken.yaml

@@ -38,6 +38,28 @@ func TestOrganizationFromV1beta1(t *testing.T) {
 	g.Expect(f.Name).To(Equal(apiSpec.Spec.Name))
 }
 
+func TestOrganizationDelete(t *testing.T) {
+	g := NewWithT(t)
+
+	var deleteFilter bson.M
+	db := &MockDatabase{
+		DeleteOne: func(ctx context.Context, filter interface{}) error {
+			deleteFilter = filter.(bson.M)
+			return nil
+		},
+	}
+
+	org := Organization{
+		ID: "org",
+	}
+
+	err := DeleteOrganization(context.TODO(), org, db)
+	g.Expect(err).To(BeNil())
+	g.Expect(deleteFilter).To(Equal(bson.M{
+		"id": "org",
+	}))
+}
+
 func TestOrganizationCreateIfNotExists(t *testing.T) {
 	g := NewWithT(t)
 

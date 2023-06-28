@@ -38,6 +38,9 @@ func MockProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, user
 			DeleteMany: func(ctx context.Context, filter interface{}) error {
 				return nil
 			},
+			DeleteOne: func(ctx context.Context, filter interface{}) error {
+				return nil
+			},
 		}, nil
 	}
 
@@ -685,6 +688,309 @@ var _ = Describe("GrowthbookInstance controller", func() {
 
 			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
 		})
+	})
+
+	When("garbae collecting resources other than GrowthbookInstance", func() {
+		name := fmt.Sprintf("growthbookinstance-%s", randStringRunes(5))
+		nameOrg := fmt.Sprintf("growthbookorganization-%s", randStringRunes(5))
+
+		It("should delete a GrowthbookOrganization without pruning", func() {
+			By("By creating a new GrowthbookInstance")
+			ctx := context.Background()
+
+			gi := &v1beta1.GrowthbookInstance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: "default",
+				},
+				Spec: v1beta1.GrowthbookInstanceSpec{
+					MongoDB: v1beta1.GrowthbookInstanceMongoDB{},
+					ResourceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"instance": name,
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, gi)).Should(Succeed())
+
+			By("By creating a new GrowthbookOrganization matching instance=test-instance")
+			gorg := &v1beta1.GrowthbookOrganization{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      nameOrg,
+					Namespace: "default",
+					Labels: map[string]string{
+						"instance": name,
+					},
+				},
+				Spec: v1beta1.GrowthbookOrganizationSpec{
+					OwnerEmail: "admin@org.com",
+					ResourceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"org": nameOrg,
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, gorg)).Should(Succeed())
+
+			orgLookupKey := types.NamespacedName{Name: nameOrg, Namespace: "default"}
+			reconciledOrganization := &v1beta1.GrowthbookOrganization{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, orgLookupKey, reconciledOrganization)
+				if err != nil {
+					return false
+				}
+
+				return len(reconciledOrganization.Finalizers) == 1 &&
+					reconciledOrganization.Finalizers[0] == fmt.Sprintf("finalizers.doodle.com/%s.default", name)
+			}, timeout, interval).Should(BeTrue())
+
+			By("By deleting the GrowthbookOrganization")
+			Expect(k8sClient.Delete(ctx, gorg)).Should(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, orgLookupKey, reconciledOrganization)
+				return err != nil
+			}, timeout, interval).Should(BeTrue())
+
+			By("By creating the same GrowthbookOrganization matching instance=test-instance again but with a different id")
+			gorg2 := &v1beta1.GrowthbookOrganization{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      nameOrg,
+					Namespace: "default",
+					Labels: map[string]string{
+						"instance": name,
+					},
+				},
+				Spec: v1beta1.GrowthbookOrganizationSpec{
+					ID:         "another-id",
+					OwnerEmail: "admin@org.com",
+					ResourceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"org": nameOrg,
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, gorg2)).Should(Succeed())
+
+			instanceLookupKey := types.NamespacedName{Name: name, Namespace: "default"}
+			reconciledInstance := &v1beta1.GrowthbookInstance{}
+			expectedStatus := v1beta1.GrowthbookInstanceStatus{
+				ObservedGeneration: int64(1),
+				SubResourceCatalog: []v1beta1.ResourceReference{
+					{
+						Kind:       "GrowthbookOrganization",
+						APIVersion: "growthbook.infra.doodle.com/v1beta1",
+						Name:       nameOrg,
+					},
+				},
+				Conditions: []metav1.Condition{
+					{
+						Type:               v1beta1.ReadyCondition,
+						Status:             "True",
+						ObservedGeneration: 0,
+						Reason:             "Synchronized",
+						Message:            "instance successfully reconciled",
+					},
+				},
+			}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
+				if err != nil {
+					return false
+				}
+
+				return needStatus(reconciledInstance, &expectedStatus) &&
+					len(reconciledInstance.Finalizers) == 1 &&
+					reconciledInstance.Finalizers[0] == "finalizers.doodle.com"
+			}, timeout, interval).Should(BeTrue())
+
+		})
+
+		It("should delete a GrowthbookOrganization with pruning", func() {
+			By("By setting spec.prune=true on the GrowtbookInstance")
+			instanceLookupKey := types.NamespacedName{Name: name, Namespace: "default"}
+			reconciledInstance := &v1beta1.GrowthbookInstance{}
+			Expect(k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)).Should(Succeed())
+
+			reconciledInstance.Spec.Prune = true
+			Expect(k8sClient.Update(ctx, reconciledInstance)).Should(Succeed())
+
+			orgLookupKey := types.NamespacedName{Name: nameOrg, Namespace: "default"}
+			reconciledOrganization := &v1beta1.GrowthbookOrganization{}
+			Expect(k8sClient.Get(ctx, orgLookupKey, reconciledOrganization)).Should(Succeed())
+
+			By("By deleting the GrowthbookOrganization")
+			Expect(k8sClient.Delete(ctx, reconciledOrganization)).Should(Succeed())
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, orgLookupKey, reconciledOrganization)
+				return err != nil
+			}, timeout, interval).Should(BeTrue())
+		})
+	})
+
+	When("garbage collecting GrowthbookInstance", func() {
+		name := fmt.Sprintf("growthbookinstance-%s", randStringRunes(5))
+		nameOrg := fmt.Sprintf("growthbookorganization-%s", randStringRunes(5))
+
+		It("should remove the growthbooks finalizer from all related resources with pruning", func() {
+			By("By creating a new GrowthbookInstance")
+			ctx := context.Background()
+
+			gi := &v1beta1.GrowthbookInstance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: "default",
+				},
+				Spec: v1beta1.GrowthbookInstanceSpec{
+					Prune:   true,
+					MongoDB: v1beta1.GrowthbookInstanceMongoDB{},
+					ResourceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"instance": name,
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, gi)).Should(Succeed())
+
+			By("By creating a new GrowthbookOrganization matching instance=test-instance")
+			gorg := &v1beta1.GrowthbookOrganization{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      nameOrg,
+					Namespace: "default",
+					Labels: map[string]string{
+						"instance": name,
+					},
+				},
+				Spec: v1beta1.GrowthbookOrganizationSpec{
+					OwnerEmail: "admin@org.com",
+					ResourceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"org": nameOrg,
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, gorg)).Should(Succeed())
+
+			orgLookupKey := types.NamespacedName{Name: nameOrg, Namespace: "default"}
+			reconciledOrganization := &v1beta1.GrowthbookOrganization{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, orgLookupKey, reconciledOrganization)
+				if err != nil {
+					return false
+				}
+
+				return len(reconciledOrganization.Finalizers) == 1 &&
+					reconciledOrganization.Finalizers[0] == fmt.Sprintf("finalizers.doodle.com/%s.default", name)
+			}, timeout, interval).Should(BeTrue())
+
+			By("By deleting the GrowthbookInstance")
+			Expect(k8sClient.Delete(ctx, gi)).Should(Succeed())
+
+			instanceLookupKey := types.NamespacedName{Name: name, Namespace: "default"}
+			reconciledInstance := &v1beta1.GrowthbookInstance{}
+
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
+				return err != nil
+			}, timeout, interval).Should(BeTrue())
+
+			By("By making sure the finalizer from the GrowthbookOrganization is removed")
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, orgLookupKey, reconciledOrganization)
+				if err != nil {
+					return false
+				}
+
+				return len(reconciledOrganization.Finalizers) == 0
+			}, timeout, interval).Should(BeTrue())
+		})
+	})
+
+	It("should remove the growthbooks finalizer from all related resources without pruning", func() {
+		name := fmt.Sprintf("growthbookinstance-%s", randStringRunes(5))
+		nameOrg := fmt.Sprintf("growthbookorganization-%s", randStringRunes(5))
+
+		By("By creating a new GrowthbookInstance")
+		ctx := context.Background()
+
+		gi := &v1beta1.GrowthbookInstance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: "default",
+			},
+			Spec: v1beta1.GrowthbookInstanceSpec{
+				MongoDB: v1beta1.GrowthbookInstanceMongoDB{},
+				ResourceSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"instance": name,
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, gi)).Should(Succeed())
+
+		By("By creating a new GrowthbookOrganization matching instance=test-instance")
+		gorg := &v1beta1.GrowthbookOrganization{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      nameOrg,
+				Namespace: "default",
+				Labels: map[string]string{
+					"instance": name,
+				},
+			},
+			Spec: v1beta1.GrowthbookOrganizationSpec{
+				OwnerEmail: "admin@org.com",
+				ResourceSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"org": nameOrg,
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, gorg)).Should(Succeed())
+
+		orgLookupKey := types.NamespacedName{Name: nameOrg, Namespace: "default"}
+		reconciledOrganization := &v1beta1.GrowthbookOrganization{}
+
+		Eventually(func() bool {
+			err := k8sClient.Get(ctx, orgLookupKey, reconciledOrganization)
+			if err != nil {
+				return false
+			}
+
+			return len(reconciledOrganization.Finalizers) == 1 &&
+				reconciledOrganization.Finalizers[0] == fmt.Sprintf("finalizers.doodle.com/%s.default", name)
+		}, timeout, interval).Should(BeTrue())
+
+		By("By deleting the GrowthbookInstance")
+		Expect(k8sClient.Delete(ctx, gi)).Should(Succeed())
+
+		instanceLookupKey := types.NamespacedName{Name: name, Namespace: "default"}
+		reconciledInstance := &v1beta1.GrowthbookInstance{}
+
+		Eventually(func() bool {
+			err := k8sClient.Get(ctx, instanceLookupKey, reconciledInstance)
+			return err != nil
+		}, timeout, interval).Should(BeTrue())
+
+		By("By making sure the finalizer from the GrowthbookOrganization is removed")
+		Eventually(func() bool {
+			err := k8sClient.Get(ctx, orgLookupKey, reconciledOrganization)
+			if err != nil {
+				return false
+			}
+
+			return len(reconciledOrganization.Finalizers) == 0
+		}, timeout, interval).Should(BeTrue())
 	})
 })
 

@@ -38,6 +38,28 @@ func TestUserFromV1beta1(t *testing.T) {
 	g.Expect(f.Name).To(Equal(apiSpec.Spec.Name))
 }
 
+func TestUserDelete(t *testing.T) {
+	g := NewWithT(t)
+
+	var deleteFilter bson.M
+	db := &MockDatabase{
+		DeleteOne: func(ctx context.Context, filter interface{}) error {
+			deleteFilter = filter.(bson.M)
+			return nil
+		},
+	}
+
+	user := User{
+		ID: "user",
+	}
+
+	err := DeleteUser(context.TODO(), user, db)
+	g.Expect(err).To(BeNil())
+	g.Expect(deleteFilter).To(Equal(bson.M{
+		"id": "user",
+	}))
+}
+
 func TestUserCreateIfNotExists(t *testing.T) {
 	g := NewWithT(t)
 

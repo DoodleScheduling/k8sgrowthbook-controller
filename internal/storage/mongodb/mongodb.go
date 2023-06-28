@@ -36,6 +36,11 @@ func (c *Collection) FindOne(ctx context.Context, filter interface{}, dst interf
 	return c.collection.FindOne(ctx, filter).Decode(dst)
 }
 
+func (c *Collection) DeleteOne(ctx context.Context, filter interface{}) error {
+	_, err := c.collection.DeleteOne(ctx, filter)
+	return err
+}
+
 func (c *Collection) InsertOne(ctx context.Context, doc interface{}) error {
 	_, err := c.collection.InsertOne(ctx, doc)
 	return err

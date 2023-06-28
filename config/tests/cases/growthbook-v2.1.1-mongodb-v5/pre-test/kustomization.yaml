@@ -3,7 +3,9 @@ kind: Kustomization
 namespace: k8sgrowthbook-system
 
 resources:
-- ../../base
+- ../../../base/mongodb
+- ../../../base/growthbook/backend
+- ../../../base/growthbook-controller
 
 images:
 - name: growthbook/growthbook

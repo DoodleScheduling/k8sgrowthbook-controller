@@ -31,6 +31,15 @@ func (o *Organization) FromV1beta1(org v1beta1.GrowthbookOrganization) *Organiza
 	return o
 }
 
+func DeleteOrganization(ctx context.Context, org Organization, db storage.Database) error {
+	col := db.Collection("organizations")
+	filter := bson.M{
+		"id": org.ID,
+	}
+
+	return col.DeleteOne(ctx, filter)
+}
+
 func UpdateOrganization(ctx context.Context, org Organization, db storage.Database) error {
 	col := db.Collection("organizations")
 	filter := bson.M{

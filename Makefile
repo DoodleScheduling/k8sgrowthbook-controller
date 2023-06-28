@@ -104,8 +104,18 @@ kind-test: docker-build ## Deploy including test
 	kustomize build config/base/crd | kubectl --context kind-${CLUSTER} apply -f -	
 	kind load docker-image ${IMG} --name ${CLUSTER}
 	kubectl -n k8sgrowthbook-system delete pods --all
-	kustomize build config/tests/cases/${TEST_PROFILE} --enable-helm | kubectl --context kind-${CLUSTER} apply -f -	
+
+	echo "pre-test"
+	kustomize build config/tests/cases/${TEST_PROFILE}/pre-test --enable-helm | kubectl --context kind-${CLUSTER} apply -f -	
 	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=condition=Ready pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify!=yes --timeout=3m
+
+	echo "test"
+	kustomize build config/tests/cases/${TEST_PROFILE}/test --enable-helm | kubectl --context kind-${CLUSTER} apply -f -	
+	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=jsonpath='{.status.conditions[1].reason}'=PodCompleted pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify=yes --timeout=3m
+
+	echo "post-test"
+	kustomize build config/tests/cases/${TEST_PROFILE}/test --enable-helm | kubectl --context kind-${CLUSTER} delete -f -	
+	kustomize build config/tests/cases/${TEST_PROFILE}/post-test --enable-helm | kubectl --context kind-${CLUSTER} apply -f -	
 	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=jsonpath='{.status.conditions[1].reason}'=PodCompleted pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify=yes --timeout=3m
 
 ##@ Deployment

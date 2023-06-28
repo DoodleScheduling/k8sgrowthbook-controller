@@ -26,6 +26,7 @@ const (
 	SynchronizedReason = "Synchronized"
 	ProgressingReason  = "Progressing"
 	FailedReason       = "Failed"
+	Finalizer          = "finalizers.doodle.com"
 )
 
 // ConditionalResource is a resource with conditions
