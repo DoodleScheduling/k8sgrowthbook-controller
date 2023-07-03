@@ -89,6 +89,7 @@ func main() {
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 
+	ns := strings.Split(viper.GetString("namespaces"), ",")
 	opts := ctrl.Options{
 		Scheme:                  scheme,
 		MetricsBindAddress:      viper.GetString("metrics-addr"),
@@ -97,11 +98,12 @@ func main() {
 		LeaderElection:          viper.GetBool("enable-leader-election"),
 		LeaderElectionNamespace: viper.GetString("leader-election-namespace"),
 		LeaderElectionID:        "k8sgrowthbook-controller",
+		Cache: cache.Options{
+			Namespaces: ns,
+		},
 	}
 
-	ns := strings.Split(viper.GetString("namespaces"), ",")
-	if len(ns) > 0 && ns[0] != "" {
-		opts.NewCache = cache.MultiNamespacedCacheBuilder(ns)
+	if len(ns) > 0 {
 		setupLog.Info("watching dedicated namespaces", "namespaces", ns)
 	} else {
 		setupLog.Info("watching all namespaces")
