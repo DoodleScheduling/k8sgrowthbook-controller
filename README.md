@@ -173,8 +173,9 @@ Available env variables:
 
 | Name  | Description | Default |
 |-------|-------------| --------|
-| `METRICS_ADDR` | The address of the metric endpoint binds to. | `:9556` |
-| `PROBE_ADDR` | The address of the probe endpoints binds to. | `:9557` |
+| `METRICS_ADDR` | The address of the metric endpoint bind to. | `:9556` |
+| `PROBE_ADDR` | The address of the probe endpoints bind to. | `:9557` |
+| `PPROF_ADDR` | The address of the pprof endpoint bind to. | `` |
 | `ENABLE_LEADER_ELECTION` | Enable leader election for controller manager. | `false` |
 | `LEADER_ELECTION_NAMESPACE` | Change the leader election namespace. This is by default the same where the controller is deployed. | `` |
 | `NAMESPACES` | The controller listens by default for all namespaces. This may be limited to a comma delimted list of dedicated namespaces. | `` |

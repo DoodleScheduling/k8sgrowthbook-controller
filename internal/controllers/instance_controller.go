@@ -42,7 +42,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	v1beta1 "github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
 	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/growthbook"
@@ -174,23 +173,23 @@ func (r *GrowthbookInstanceReconciler) SetupWithManager(mgr ctrl.Manager, opts G
 			predicate.GenerationChangedPredicate{},
 		)).
 		Watches(
-			&source.Kind{Type: &corev1.Secret{}},
+			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.requestsForChangeByField(secretIndexKey)),
 		).
 		Watches(
-			&source.Kind{Type: &v1beta1.GrowthbookUser{}},
+			&v1beta1.GrowthbookUser{},
 			handler.EnqueueRequestsFromMapFunc(r.requestsForChangeBySelector),
 		).
 		Watches(
-			&source.Kind{Type: &v1beta1.GrowthbookOrganization{}},
+			&v1beta1.GrowthbookOrganization{},
 			handler.EnqueueRequestsFromMapFunc(r.requestsForChangeBySelector),
 		).
 		Watches(
-			&source.Kind{Type: &v1beta1.GrowthbookClient{}},
+			&v1beta1.GrowthbookClient{},
 			handler.EnqueueRequestsFromMapFunc(r.requestsForChangeBySelector),
 		).
 		Watches(
-			&source.Kind{Type: &v1beta1.GrowthbookFeature{}},
+			&v1beta1.GrowthbookFeature{},
 			handler.EnqueueRequestsFromMapFunc(r.requestsForChangeBySelector),
 		).
 		WithOptions(controller.Options{MaxConcurrentReconciles: opts.MaxConcurrentReconciles}).
@@ -198,8 +197,7 @@ func (r *GrowthbookInstanceReconciler) SetupWithManager(mgr ctrl.Manager, opts G
 }
 
 func (r *GrowthbookInstanceReconciler) requestsForChangeByField(field string) handler.MapFunc {
-	return func(o client.Object) []reconcile.Request {
-		ctx := context.Background()
+	return func(ctx context.Context, o client.Object) []reconcile.Request {
 		var list v1beta1.GrowthbookInstanceList
 		if err := r.List(ctx, &list, client.MatchingFields{
 			field: objectKey(o).String(),
@@ -217,8 +215,7 @@ func (r *GrowthbookInstanceReconciler) requestsForChangeByField(field string) ha
 	}
 }
 
-func (r *GrowthbookInstanceReconciler) requestsForChangeBySelector(o client.Object) []reconcile.Request {
-	ctx := context.Background()
+func (r *GrowthbookInstanceReconciler) requestsForChangeBySelector(ctx context.Context, o client.Object) []reconcile.Request {
 	var list v1beta1.GrowthbookInstanceList
 	if err := r.List(ctx, &list, client.InNamespace(o.GetNamespace())); err != nil {
 		return nil
