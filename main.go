@@ -52,6 +52,7 @@ func init() {
 var (
 	metricsAddr             = ":9556"
 	probesAddr              = ":9557"
+	pprofAddr               = ""
 	enableLeaderElection    = false
 	leaderElectionNamespace string
 	namespaces              = ""
@@ -59,8 +60,9 @@ var (
 )
 
 func main() {
-	flag.StringVar(&metricsAddr, "metrics-addr", ":9556", "The address of the metric endpoint binds to.")
+	flag.StringVar(&metricsAddr, "metrics-addr", ":9556", "The address of the metric endpoint bind to.")
 	flag.StringVar(&probesAddr, "probe-addr", ":9557", "The address of the probe endpoints bind to.")
+	flag.StringVar(&pprofAddr, "pprof-addr", "", "The address of the pprof endpoint bind to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -91,6 +93,7 @@ func main() {
 		Scheme:                  scheme,
 		MetricsBindAddress:      viper.GetString("metrics-addr"),
 		HealthProbeBindAddress:  viper.GetString("probe-addr"),
+		PprofBindAddress:        viper.GetString("pprof-addr"),
 		LeaderElection:          viper.GetBool("enable-leader-election"),
 		LeaderElectionNamespace: viper.GetString("leader-election-namespace"),
 		LeaderElectionID:        "k8sgrowthbook-controller",
