@@ -143,7 +143,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
+			Expect(reconciledInstance.Status.SubResourceCatalog).To(ConsistOf(expectedStatus.SubResourceCatalog))
 		})
 
 		nameFeature := fmt.Sprintf("growthbookfeature-%s", randStringRunes(5))
@@ -218,7 +218,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
+			Expect(reconciledInstance.Status.SubResourceCatalog).To(ConsistOf(expectedStatus.SubResourceCatalog))
 		})
 
 		instanceAnotherName := fmt.Sprintf("growthbookinstance-%s", randStringRunes(5))
@@ -286,7 +286,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
+			Expect(reconciledInstance.Status.SubResourceCatalog).To(ConsistOf(expectedStatus.SubResourceCatalog))
 		})
 
 		It("Should update status.catalog with new GrowthbookClients added", func() {
@@ -382,7 +382,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
+			Expect(reconciledInstance.Status.SubResourceCatalog).To(ConsistOf(expectedStatus.SubResourceCatalog))
 		})
 	})
 
@@ -509,7 +509,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
+			Expect(reconciledInstance.Status.SubResourceCatalog).To(ConsistOf(expectedStatus.SubResourceCatalog))
 		})
 
 		It("Should update condition to successful if the user credentials have been added", func() {
@@ -557,7 +557,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
+			Expect(reconciledInstance.Status.SubResourceCatalog).To(ConsistOf(expectedStatus.SubResourceCatalog))
 		})
 	})
 
@@ -605,7 +605,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
+			Expect(reconciledInstance.Status.SubResourceCatalog).To(ConsistOf(expectedStatus.SubResourceCatalog))
 		})
 	})
 
@@ -686,7 +686,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 				return needStatus(reconciledInstance, &expectedStatus)
 			}, timeout, interval).Should(BeTrue())
 
-			Expect(reconciledInstance.Status.SubResourceCatalog).To(Equal(expectedStatus.SubResourceCatalog))
+			Expect(reconciledInstance.Status.SubResourceCatalog).To(ConsistOf(expectedStatus.SubResourceCatalog))
 		})
 	})
 
