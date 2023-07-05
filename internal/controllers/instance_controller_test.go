@@ -16,16 +16,16 @@ import (
 )
 
 // MockProvider returns a storage.Database for testing
-func MockProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, username, password string) (storage.Database, error) {
+func MockProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, username, password string) (storage.Disconnector, storage.Database, error) {
 	// See test "reconciling a GrowthbookInstance with a timeout"
 	if instance.Spec.Timeout != nil && instance.Spec.Timeout.Duration == 500*time.Millisecond {
 		<-ctx.Done()
-		return nil, ctx.Err()
+		return nil, nil, ctx.Err()
 	}
 
 	// For testing the controller logic the storage adapter just does nothing and returns no error
 	if instance.Spec.MongoDB.URI == "" {
-		return &growthbook.MockDatabase{
+		return &growthbook.MockDisconnect{}, &growthbook.MockDatabase{
 			FindOne: func(ctx context.Context, filter interface{}, dst interface{}) error {
 				return nil
 			},

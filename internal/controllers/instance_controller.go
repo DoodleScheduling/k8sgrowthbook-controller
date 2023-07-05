@@ -66,7 +66,7 @@ const (
 )
 
 // MongoDBProvider returns a storage.Database for MongoDB
-func MongoDBProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, username, password string) (storage.Database, error) {
+func MongoDBProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, username, password string) (storage.Disconnector, storage.Database, error) {
 	opts := options.Client().ApplyURI(instance.Spec.MongoDB.URI)
 	if username != "" || password != "" {
 		opts.SetAuth(options.Credential{
@@ -78,22 +78,22 @@ func MongoDBProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, u
 	opts.SetAppName("k8sgrowthbook-controller")
 	mongoClient, err := mongo.NewClient(opts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	u, err := url.Parse(instance.Spec.MongoDB.URI)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	dbName := strings.TrimLeft(u.Path, "/")
 	db := mongoClient.Database(dbName)
 
 	if err := mongoClient.Connect(ctx); err != nil {
-		return nil, fmt.Errorf("failed connecting to mongodb: %w", err)
+		return nil, nil, fmt.Errorf("failed connecting to mongodb: %w", err)
 	}
 
-	return mongodb.New(db), nil
+	return mongoClient, mongodb.New(db), nil
 }
 
 // GrowthbookInstance reconciles a GrowthbookInstance object
@@ -102,7 +102,7 @@ type GrowthbookInstanceReconciler struct {
 	Log              logr.Logger
 	Scheme           *runtime.Scheme
 	Recorder         record.EventRecorder
-	DatabaseProvider func(ctx context.Context, instance v1beta1.GrowthbookInstance, username, password string) (storage.Database, error)
+	DatabaseProvider func(ctx context.Context, instance v1beta1.GrowthbookInstance, username, password string) (storage.Disconnector, storage.Database, error)
 }
 
 type GrowthbookInstanceReconcilerOptions struct {
@@ -332,10 +332,18 @@ func (r *GrowthbookInstanceReconciler) reconcile(ctx context.Context, instance v
 		}
 	}
 
-	db, err := r.DatabaseProvider(ctx, instance, usr, pw)
+	disconnector, db, err := r.DatabaseProvider(ctx, instance, usr, pw)
 	if err != nil {
 		return instance, err
 	}
+
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*10)
+		defer cancel()
+		if err := disconnector.Disconnect(ctx); err != nil {
+			logger.Error(err, "failed disconnet mongodb")
+		}
+	}()
 
 	instance.Status.SubResourceCatalog = []v1beta1.ResourceReference{}
 

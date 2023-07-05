@@ -2,6 +2,10 @@ package storage
 
 import "context"
 
+type Disconnector interface {
+	Disconnect(ctx context.Context) error
+}
+
 type Database interface {
 	Collection(collName string) Collection
 }
