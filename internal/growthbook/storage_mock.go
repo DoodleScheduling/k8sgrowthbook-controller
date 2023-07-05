@@ -12,6 +12,13 @@ var (
 	_ storage.Collection = &MockCollection{}
 )
 
+type MockDisconnect struct {
+}
+
+func (d *MockDisconnect) Disconnect(ctx context.Context) error {
+	return nil
+}
+
 type MockDatabase struct {
 	FindOne    func(ctx context.Context, filter interface{}, dst interface{}) error
 	DeleteOne  func(ctx context.Context, filter interface{}) error
