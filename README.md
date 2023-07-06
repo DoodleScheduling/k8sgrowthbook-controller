@@ -140,10 +140,7 @@ metadata:
     growthbook-instance: my-instance
   namespace: growthbook
 spec:
-  description: feature B
   environment: production
-  tags:
-  - frontend
   tokenSecret:
     name: growthbook-client-1-token
 ---
