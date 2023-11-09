@@ -54,10 +54,6 @@ func init() {
 }
 
 var (
-	minPort                 int32 = 1025
-	maxPort                 int32 = 65535
-	tcpConfigMap                  = ""
-	frontendService               = ""
 	metricsAddr             string
 	healthAddr              string
 	concurrent              int
