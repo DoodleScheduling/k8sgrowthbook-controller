@@ -39,7 +39,7 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
-const controllerName = "gc-controller"
+const controllerName = "growthbook-controller"
 
 var (
 	scheme   = runtime.NewScheme()
