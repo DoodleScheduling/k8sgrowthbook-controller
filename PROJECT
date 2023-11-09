@@ -1,8 +1,8 @@
 domain: doodle.com
 layout:
 - go.kubebuilder.io/v3
-projectName: k8sgrowthbook-controller
-repo: github.com/doodlescheduling/k8sgrowthbook-controller
+projectName: growthbook-controller
+repo: github.com/doodlescheduling/growthbook-controller
 resources:
 - api:
     crdVersion: v1
@@ -10,8 +10,26 @@ resources:
   controller: true
   domain: doodle.com
   group: growthbook.infra.doodle.com
+  kind: GrowthbookInstance
+  path: github.com/doodlescheduling/growthbook-controller/api/v1beta1
+  version: v1beta1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: doodle.com
+  group: growthbook.infra.doodle.com
+  kind: GrowthbookOrganization
+  path: github.com/doodlescheduling/growthbook-controller/api/v1beta1
+  version: v1beta1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: doodle.com
+  group: growthbook.infra.doodle.com
   kind: GrowthbookFeature
-  path: github.com/doodlescheduling/k8sgrowthbook-controller/api/v1beta1
+  path: github.com/doodlescheduling/growthbook-controller/api/v1beta1
   version: v1beta1
 - api:
     crdVersion: v1
@@ -20,6 +38,6 @@ resources:
   domain: doodle.com
   group: growthbook.infra.doodle.com
   kind: GrowthbookClient
-  path: github.com/doodlescheduling/k8sgrowthbook-controller/api/v1beta1
+  path: github.com/doodlescheduling/growthbook-controller/api/v1beta1
   version: v1beta1
 version: "3"

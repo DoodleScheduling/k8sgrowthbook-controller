@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/growthbook"
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/storage"
+	"github.com/DoodleScheduling/growthbook-controller/api/v1beta1"
+	"github.com/DoodleScheduling/growthbook-controller/internal/growthbook"
+	"github.com/DoodleScheduling/growthbook-controller/internal/storage"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"

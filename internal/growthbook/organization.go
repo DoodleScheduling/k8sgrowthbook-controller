@@ -5,8 +5,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/storage"
+	"github.com/DoodleScheduling/growthbook-controller/api/v1beta1"
+	"github.com/DoodleScheduling/growthbook-controller/internal/storage"
 	"go.mongodb.org/mongo-driver/bson"
 )
 

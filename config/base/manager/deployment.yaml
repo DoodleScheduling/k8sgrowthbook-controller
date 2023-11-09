@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: k8sgrowthbook-controller
+  name: growthbook-controller
   labels:
     control-plane: controller-manager
 spec:
@@ -21,8 +21,8 @@ spec:
         - /manager
         args:
         - --enable-leader-election
-        image: ghcr.io/doodlescheduling/k8sgrowthbook-controller:latest
-        name: k8sgrowthbook-controller
+        image: ghcr.io/doodlescheduling/growthbook-controller:latest
+        name: growthbook-controller
         imagePullPolicy: Never
         ports:
         - name: metrics

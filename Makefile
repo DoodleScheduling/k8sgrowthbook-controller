@@ -1,8 +1,8 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= k8sgrowthbook-controller:latest
+IMG ?= growthbook-controller:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.23
+ENVTEST_K8S_VERSION = 1.27
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -42,7 +42,7 @@ help: ## Display this help.
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/base/crd/bases output:rbac:artifacts:config=config/base/rbac
-	cp config/base/crd/bases/* chart/k8sgrowthbook-controller/crds/
+	cp config/base/crd/bases/* chart/growthbook-controller/crds/
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -103,20 +103,20 @@ CLUSTER=kind
 kind-test: docker-build ## Deploy including test
 	kustomize build config/base/crd | kubectl --context kind-${CLUSTER} apply -f -	
 	kind load docker-image ${IMG} --name ${CLUSTER}
-	kubectl -n k8sgrowthbook-system delete pods --all
+	kubectl -n growthbook-system delete pods --all
 
 	echo "pre-test"
 	kustomize build config/tests/cases/${TEST_PROFILE}/pre-test --enable-helm | kubectl --context kind-${CLUSTER} apply -f -	
-	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=condition=Ready pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify!=yes --timeout=3m
+	kubectl --context kind-${CLUSTER} -n growthbook-system wait --for=condition=Ready pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify!=yes --timeout=3m
 
 	echo "test"
 	kustomize build config/tests/cases/${TEST_PROFILE}/test --enable-helm | kubectl --context kind-${CLUSTER} apply -f -	
-	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=jsonpath='{.status.conditions[1].reason}'=PodCompleted pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify=yes --timeout=3m
+	kubectl --context kind-${CLUSTER} -n growthbook-system wait --for=jsonpath='{.status.conditions[1].reason}'=PodCompleted pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify=yes --timeout=3m
 
 	echo "post-test"
 	kustomize build config/tests/cases/${TEST_PROFILE}/test --enable-helm | kubectl --context kind-${CLUSTER} delete -f -	
 	kustomize build config/tests/cases/${TEST_PROFILE}/post-test --enable-helm | kubectl --context kind-${CLUSTER} apply -f -	
-	kubectl --context kind-${CLUSTER} -n k8sgrowthbook-system wait --for=jsonpath='{.status.conditions[1].reason}'=PodCompleted pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify=yes --timeout=3m
+	kubectl --context kind-${CLUSTER} -n growthbook-system wait --for=jsonpath='{.status.conditions[1].reason}'=PodCompleted pods -l control-plane=controller-manager -l app.kubernetes.io/managed-by!=Helm -l verify=yes --timeout=3m
 
 ##@ Deployment
 ifndef ignore-not-found
@@ -133,7 +133,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/base/manager && $(KUSTOMIZE) edit set image ghcr.io/doodlescheduling/k8sgrowthbook-controller=${IMG}
+	cd config/base/manager && $(KUSTOMIZE) edit set image ghcr.io/doodlescheduling/growthbook-controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy

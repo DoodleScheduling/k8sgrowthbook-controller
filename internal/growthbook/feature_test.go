@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
+	"github.com/DoodleScheduling/growthbook-controller/api/v1beta1"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"

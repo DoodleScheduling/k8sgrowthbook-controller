@@ -4,6 +4,6 @@ resources:
 - ../../../default
 
 images:
-- name: ghcr.io/doodlescheduling/k8sgrowthbook-controller
+- name: ghcr.io/doodlescheduling/growthbook-controller
   newTag: latest
-  newName: k8sgrowthbook-controller
+  newName: growthbook-controller

@@ -1,4 +1,4 @@
-project_name: k8sgrowthbook-controller
+project_name: growthbook-controller
 
 builds:
 - id: manager

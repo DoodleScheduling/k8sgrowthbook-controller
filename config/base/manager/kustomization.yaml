@@ -4,5 +4,5 @@ resources:
 - deployment.yaml
 - service.yaml
 images:
-- name: ghcr.io/doodlescheduling/k8sgrowthbook-controller
+- name: ghcr.io/doodlescheduling/growthbook-controller
   newTag: v0.2.2

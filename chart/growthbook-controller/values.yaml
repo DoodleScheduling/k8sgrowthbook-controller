@@ -10,7 +10,7 @@ fullnameOverride: ""
 
 image:
   pullPolicy: IfNotPresent
-  repository: ghcr.io/doodlescheduling/k8sgrowthbook-controller
+  repository: ghcr.io/doodlescheduling/growthbook-controller
   tag:
 
 imagePullSecrets: []

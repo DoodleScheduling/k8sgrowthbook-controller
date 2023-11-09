@@ -24,7 +24,7 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
+	"github.com/DoodleScheduling/growthbook-controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"

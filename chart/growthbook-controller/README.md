@@ -1,16 +1,16 @@
-# k8sgrowthbook-controller helm chart
+# growthbook-controller helm chart
 
-Installs the [k8sgrowthbook-controller](https://github.com/DoodleScheduling/k8sgrowthbook-controller).
+Installs the [growthbook-controller](https://github.com/DoodleScheduling/growthbook-controller).
 
 ## Installing the Chart
 
-To install the chart with the release name `k8sgrowthbook-controller`:
+To install the chart with the release name `growthbook-controller`:
 
 ```console
-helm upgrade --install k8sgrowthbook-controller k8sgrowthbook-controller/k8sgrowthbook-controller
+helm upgrade --install growthbook-controller growthbook-controller/growthbook-controller
 ```
 
-This command deploys the k8sgrowthbook-controller with the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.
+This command deploys the growthbook-controller with the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.
 
 ## Using the Chart
 
@@ -30,5 +30,5 @@ podAnnotations:
 See Customizing the Chart Before Installing. To see all configurable options with detailed comments, visit the chart's values.yaml, or run the configuration command:
 
 ```sh
-$ helm show values k8sgrowthbook-controller/k8sgrowthbook-controller
+$ helm show values growthbook-controller/growthbook-controller
 ```

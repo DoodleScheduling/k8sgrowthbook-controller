@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/storage"
+	"github.com/DoodleScheduling/growthbook-controller/internal/storage"
 )
 
 var (

@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/storage"
+	"github.com/DoodleScheduling/growthbook-controller/api/v1beta1"
+	"github.com/DoodleScheduling/growthbook-controller/internal/storage"
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/scrypt"
 )
