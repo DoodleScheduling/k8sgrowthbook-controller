@@ -43,10 +43,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	v1beta1 "github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/growthbook"
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/storage"
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/storage/mongodb"
+	v1beta1 "github.com/DoodleScheduling/growthbook-controller/api/v1beta1"
+	"github.com/DoodleScheduling/growthbook-controller/internal/growthbook"
+	"github.com/DoodleScheduling/growthbook-controller/internal/storage"
+	"github.com/DoodleScheduling/growthbook-controller/internal/storage/mongodb"
 )
 
 // +kubebuilder:rbac:groups=growthbook.infra.doodle.com,resources=growthbookinstances,verbs=get;list;watch;create;update;patch;delete
@@ -62,7 +62,7 @@ const (
 	secretIndexKey = ".metadata.secret"
 	usersIndexKey  = ".metadata.users"
 	orgsIndexKey   = ".metadata.orgs"
-	owner          = "k8sgrowthbook-controller"
+	owner          = "growthbook-controller"
 )
 
 // MongoDBProvider returns a storage.Database for MongoDB
@@ -75,7 +75,7 @@ func MongoDBProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, u
 		})
 	}
 
-	opts.SetAppName("k8sgrowthbook-controller")
+	opts.SetAppName("growthbook-controller")
 	mongoClient, err := mongo.NewClient(opts)
 	if err != nil {
 		return nil, nil, err

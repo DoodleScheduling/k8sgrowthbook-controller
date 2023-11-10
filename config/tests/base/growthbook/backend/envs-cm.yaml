@@ -3,8 +3,8 @@ apiVersion: v1
 metadata:
   name: envs
 data:
-  APP_ORIGIN: "http://growthbook-backend.k8sgrowthbook-system"
-  API_HOST: "http://growthbook-api.k8sgrowthbook-system"
+  APP_ORIGIN: "http://growthbook-backend.growthbook-system"
+  API_HOST: "http://growthbook-api.growthbook-system"
   NODE_ENV: "production"
   EXPRESS_TRUST_PROXY_OPTS: "true"
   PROXY_ENABLED: "0"

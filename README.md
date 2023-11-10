@@ -1,10 +1,10 @@
-# k8sgrowthbook-controller - Managing growthbook resources
+# growthbook-controller - Managing growthbook resources
 
-[![release](https://img.shields.io/github/release/DoodleScheduling/k8sgrowthbook-controller/all.svg)](https://github.com/DoodleScheduling/k8sgrowthbook-controller/releases)
-[![release](https://github.com/doodlescheduling/k8sgrowthbook-controller/actions/workflows/release.yaml/badge.svg)](https://github.com/doodlescheduling/k8sgrowthbook-controller/actions/workflows/release.yaml)
-[![report](https://goreportcard.com/badge/github.com/DoodleScheduling/k8sgrowthbook-controller)](https://goreportcard.com/report/github.com/DoodleScheduling/k8sgrowthbook-controller)
-[![Coverage Status](https://coveralls.io/repos/github/DoodleScheduling/k8sgrowthbook-controller/badge.svg?branch=master)](https://coveralls.io/github/DoodleScheduling/k8sgrowthbook-controller?branch=master)
-[![license](https://img.shields.io/github/license/DoodleScheduling/k8sgrowthbook-controller.svg)](https://github.com/DoodleScheduling/k8sgrowthbook-controller/blob/master/LICENSE)
+[![release](https://img.shields.io/github/release/DoodleScheduling/growthbook-controller/all.svg)](https://github.com/DoodleScheduling/growthbook-controller/releases)
+[![release](https://github.com/doodlescheduling/growthbook-controller/actions/workflows/release.yaml/badge.svg)](https://github.com/doodlescheduling/growthbook-controller/actions/workflows/release.yaml)
+[![report](https://goreportcard.com/badge/github.com/DoodleScheduling/growthbook-controller)](https://goreportcard.com/report/github.com/DoodleScheduling/growthbook-controller)
+[![Coverage Status](https://coveralls.io/repos/github/DoodleScheduling/growthbook-controller/badge.svg?branch=master)](https://coveralls.io/github/DoodleScheduling/growthbook-controller?branch=master)
+[![license](https://img.shields.io/github/license/DoodleScheduling/growthbook-controller.svg)](https://github.com/DoodleScheduling/growthbook-controller/blob/master/LICENSE)
 
 Kubernetes controller for managing growthbook.
 
@@ -18,7 +18,7 @@ bypasses their api and manages the resources on MongoDB directly.
 
 ## Resource relationship
 
-![graph](https://github.com/DoodleScheduling/k8sgrowthbook-controller/blob/master/docs/resource-relationship.jpg?raw=true)
+![graph](https://github.com/DoodleScheduling/growthbook-controller/blob/master/docs/resource-relationship.jpg?raw=true)
 
 ## Example Usage
 
@@ -157,7 +157,7 @@ data:
 
 ### Helm chart
 
-Please see [chart/k8sgrowthbook-controller](https://github.com/DoodleScheduling/k8sgrowthbook-controller) for the helm chart docs.
+Please see [chart/growthbook-controller](https://github.com/DoodleScheduling/growthbook-controller) for the helm chart docs.
 
 ### Manifests/kustomize
 
@@ -165,15 +165,25 @@ Alternatively you may get the bundled manifests in each release to deploy it usi
 
 ## Configure the controller
 
-You may change base settings for the controller using env variables (or alternatively command line arguments).
-Available env variables:
-
-| Name  | Description | Default |
-|-------|-------------| --------|
-| `METRICS_ADDR` | The address of the metric endpoint bind to. | `:9556` |
-| `PROBE_ADDR` | The address of the probe endpoints bind to. | `:9557` |
-| `PPROF_ADDR` | The address of the pprof endpoint bind to. | `` |
-| `ENABLE_LEADER_ELECTION` | Enable leader election for controller manager. | `false` |
-| `LEADER_ELECTION_NAMESPACE` | Change the leader election namespace. This is by default the same where the controller is deployed. | `` |
-| `NAMESPACES` | The controller listens by default for all namespaces. This may be limited to a comma delimted list of dedicated namespaces. | `` |
-| `CONCURRENT` | The number of concurrent reconcile workers.  | `2` |
+The controller can be configured by cmd args:
+```
+--concurrent int                            The number of concurrent Pod reconciles. (default 4)
+--enable-leader-election                    Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.
+--graceful-shutdown-timeout duration        The duration given to the reconciler to finish before forcibly stopping. (default 10m0s)
+--health-addr string                        The address the health endpoint binds to. (default ":9557")
+--insecure-kubeconfig-exec                  Allow use of the user.exec section in kubeconfigs provided for remote apply.
+--insecure-kubeconfig-tls                   Allow that kubeconfigs provided for remote apply can disable TLS verification.
+--kube-api-burst int                        The maximum burst queries-per-second of requests sent to the Kubernetes API. (default 300)
+--kube-api-qps float32                      The maximum queries-per-second of requests sent to the Kubernetes API. (default 50)
+--leader-election-lease-duration duration   Interval at which non-leader candidates will wait to force acquire leadership (duration string). (default 35s)
+--leader-election-release-on-cancel         Defines if the leader should step down voluntarily on controller manager shutdown. (default true)
+--leader-election-renew-deadline duration   Duration that the leading controller manager will retry refreshing leadership before giving up (duration string). (default 30s)
+--leader-election-retry-period duration     Duration the LeaderElector clients should wait between tries of actions (duration string). (default 5s)
+--log-encoding string                       Log encoding format. Can be 'json' or 'console'. (default "json")
+--log-level string                          Log verbosity level. Can be one of 'trace', 'debug', 'info', 'error'. (default "info")
+--max-retry-delay duration                  The maximum amount of time for which an object being reconciled will have to wait before a retry. (default 15m0s)
+--metrics-addr string                       The address the metric endpoint binds to. (default ":9556")
+--min-retry-delay duration                  The minimum amount of time for which an object being reconciled will have to wait before a retry. (default 750ms)
+--watch-all-namespaces                      Watch for resources in all namespaces, if set to false it will only watch the runtime namespace. (default true)
+--watch-label-selector string               Watch for resources with matching labels e.g. 'sharding.fluxcd.io/shard=shard1'.
+```

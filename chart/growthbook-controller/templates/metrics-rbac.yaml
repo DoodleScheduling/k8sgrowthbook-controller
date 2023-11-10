@@ -2,12 +2,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "k8sgrowthbook-controller.fullname" . }}-metrics-reader
+  name: {{ include "growthbook-controller.fullname" . }}-metrics-reader
   labels:
-    app.kubernetes.io/name: {{ include "k8sgrowthbook-controller.name" . }}
+    app.kubernetes.io/name: {{ include "growthbook-controller.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    helm.sh/chart: {{ include "k8sgrowthbook-controller.chart" . }}
+    helm.sh/chart: {{ include "growthbook-controller.chart" . }}
 rules:
 - nonResourceURLs:
   - "/metrics"
@@ -17,48 +17,48 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "k8sgrowthbook-controller.fullname" . }}-metrics
+  name: {{ include "growthbook-controller.fullname" . }}-metrics
   labels:
-    app.kubernetes.io/name: {{ include "k8sgrowthbook-controller.name" . }}
+    app.kubernetes.io/name: {{ include "growthbook-controller.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    helm.sh/chart: {{ include "k8sgrowthbook-controller.chart" . }}
+    helm.sh/chart: {{ include "growthbook-controller.chart" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "k8sgrowthbook-controller.fullname" . }}-metrics-reader
+  name: {{ include "growthbook-controller.fullname" . }}-metrics-reader
 subjects:
 - kind: ServiceAccount
-  name: {{ template "k8sgrowthbook-controller.serviceAccountName" . }}
+  name: {{ template "growthbook-controller.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "k8sgrowthbook-controller.fullname" . }}-proxy
+  name: {{ include "growthbook-controller.fullname" . }}-proxy
   labels:
-    app.kubernetes.io/name: {{ include "k8sgrowthbook-controller.name" . }}
+    app.kubernetes.io/name: {{ include "growthbook-controller.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    helm.sh/chart: {{ include "k8sgrowthbook-controller.chart" . }}
+    helm.sh/chart: {{ include "growthbook-controller.chart" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "k8sgrowthbook-controller.fullname" . }}-proxy
+  name: {{ include "growthbook-controller.fullname" . }}-proxy
 subjects:
 - kind: ServiceAccount
-  name: {{ template "k8sgrowthbook-controller.serviceAccountName" . }}
+  name: {{ template "growthbook-controller.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "k8sgrowthbook-controller.fullname" . }}-proxy
+  name: {{ include "growthbook-controller.fullname" . }}-proxy
   labels:
-    app.kubernetes.io/name: {{ include "k8sgrowthbook-controller.name" . }}
+    app.kubernetes.io/name: {{ include "growthbook-controller.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    helm.sh/chart: {{ include "k8sgrowthbook-controller.chart" . }}
+    helm.sh/chart: {{ include "growthbook-controller.chart" . }}
 rules:
 - apiGroups:
   - authentication.k8s.io

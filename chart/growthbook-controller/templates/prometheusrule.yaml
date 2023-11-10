@@ -3,15 +3,15 @@ apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
 metadata:
-  name: {{ template "k8sgrowthbook-controller.fullname" . }}
+  name: {{ template "growthbook-controller.fullname" . }}
 {{- if .Values.prometheusRule.namespace }}
   namespace: {{ .Values.prometheusRule.namespace }}
 {{- end }}
   labels:
-    app.kubernetes.io/name: {{ include "k8sgrowthbook-controller.name" . }}
+    app.kubernetes.io/name: {{ include "growthbook-controller.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    helm.sh/chart: {{ include "k8sgrowthbook-controller.chart" . }}
+    helm.sh/chart: {{ include "growthbook-controller.chart" . }}
 {{- if .Values.prometheusRule.labels }}
 {{- toYaml .Values.prometheusRule.labels | nindent 4 }}
 {{- end }}
@@ -20,7 +20,7 @@ metadata:
 spec:
 {{- with .Values.prometheusRule.rules }}
   groups:
-    - name: {{ template "k8sgrowthbook-controller.name" $ }}
+    - name: {{ template "growthbook-controller.name" $ }}
       rules: {{ tpl (toYaml .) $ | nindent 8 }}
 {{- end }}
 {{- end }}

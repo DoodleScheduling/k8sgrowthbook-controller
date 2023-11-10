@@ -2,7 +2,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "k8sgrowthbook-controller.name" -}}
+{{- define "growthbook-controller.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
@@ -11,7 +11,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "k8sgrowthbook-controller.fullname" -}}
+{{- define "growthbook-controller.fullname" -}}
 {{- if .Values.fullnameOverride -}}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
@@ -27,16 +27,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "k8sgrowthbook-controller.chart" -}}
+{{- define "growthbook-controller.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "k8sgrowthbook-controller.serviceAccountName" -}}
+{{- define "growthbook-controller.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create -}}
-    {{ default (include "k8sgrowthbook-controller.fullname" .) .Values.serviceAccount.name }}
+    {{ default (include "growthbook-controller.fullname" .) .Values.serviceAccount.name }}
 {{- else -}}
     {{ default "default" .Values.serviceAccount.name }}
 {{- end -}}
@@ -45,21 +45,21 @@ Create the name of the service account to use
 {{/*
 Determine secret name, can either be the self-created of an existing one
 */}}
-{{- define "k8sgrowthbook-controller.secretName" -}}
+{{- define "growthbook-controller.secretName" -}}
 {{- if .Values.existingSecret.name -}}
     {{- .Values.existingSecret.name -}}
 {{- else -}}
-    {{ include "k8sgrowthbook-controller.fullname" . }}
+    {{ include "growthbook-controller.fullname" . }}
 {{- end -}}
 {{- end -}}
 
 {{/*
 Determine configmap name, can either be the self-created of an existing one
 */}}
-{{- define "k8sgrowthbook-controller.configName" -}}
+{{- define "growthbook-controller.configName" -}}
 {{- if .Values.existingConfig.name -}}
     {{- .Values.existingConfig.name -}}
 {{- else -}}
-    {{ include "k8sgrowthbook-controller.fullname" . }}
+    {{ include "growthbook-controller.fullname" . }}
 {{- end -}}
 {{- end -}}

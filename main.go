@@ -17,25 +17,29 @@ limitations under the License.
 package main
 
 import (
-	"flag"
+	"fmt"
 	"os"
-	"strings"
+	"time"
 
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
+	infrav1beta1 "github.com/DoodleScheduling/growthbook-controller/api/v1beta1"
+	"github.com/DoodleScheduling/growthbook-controller/internal/controllers"
+	"github.com/fluxcd/pkg/runtime/client"
+	helper "github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/leaderelection"
+	"github.com/fluxcd/pkg/runtime/logger"
+	flag "github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	v1beta1 "github.com/DoodleScheduling/k8sgrowthbook-controller/api/v1beta1"
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/controllers"
 	// +kubebuilder:scaffold:imports
 )
+
+const controllerName = "growthbook-controller"
 
 var (
 	scheme   = runtime.NewScheme()
@@ -44,69 +48,81 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
+	_ = infrav1beta1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
-	_ = v1beta1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
 var (
-	metricsAddr             = ":9556"
-	probesAddr              = ":9557"
-	pprofAddr               = ""
-	enableLeaderElection    = false
-	leaderElectionNamespace string
-	namespaces              = ""
-	concurrent              = 2
+	metricsAddr             string
+	healthAddr              string
+	concurrent              int
+	gracefulShutdownTimeout time.Duration
+	clientOptions           client.Options
+	kubeConfigOpts          client.KubeConfigOptions
+	logOptions              logger.Options
+	leaderElectionOptions   leaderelection.Options
+	rateLimiterOptions      helper.RateLimiterOptions
+	watchOptions            helper.WatchOptions
 )
 
 func main() {
-	flag.StringVar(&metricsAddr, "metrics-addr", ":9556", "The address of the metric endpoint bind to.")
-	flag.StringVar(&probesAddr, "probe-addr", ":9557", "The address of the probe endpoints bind to.")
-	flag.StringVar(&pprofAddr, "pprof-addr", "", "The address of the pprof endpoint bind to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&leaderElectionNamespace, "leader-election-namespace", "",
-		"Specify a different leader election namespace. It will use the one where the controller is deployed by default.")
-	flag.StringVar(&namespaces, "namespaces", "",
-		"The controller listens by default for all namespaces. This may be limited to a comma delimted list of dedicated namespaces.")
-	flag.IntVar(&concurrent, "concurrent", 2,
-		"The number of concurrent reconcile workers. By default this is 2.")
+	flag.StringVar(&metricsAddr, "metrics-addr", ":9556",
+		"The address the metric endpoint binds to.")
+	flag.StringVar(&healthAddr, "health-addr", ":9557",
+		"The address the health endpoint binds to.")
+	flag.IntVar(&concurrent, "concurrent", 4,
+		"The number of concurrent Pod reconciles.")
+	flag.DurationVar(&gracefulShutdownTimeout, "graceful-shutdown-timeout", 600*time.Second,
+		"The duration given to the reconciler to finish before forcibly stopping.")
 
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
-	pflag.Parse()
-	ctrl.SetLogger(zap.New())
+	clientOptions.BindFlags(flag.CommandLine)
+	logOptions.BindFlags(flag.CommandLine)
+	leaderElectionOptions.BindFlags(flag.CommandLine)
+	rateLimiterOptions.BindFlags(flag.CommandLine)
+	kubeConfigOpts.BindFlags(flag.CommandLine)
+	watchOptions.BindFlags(flag.CommandLine)
 
-	// Import flags into viper and bind them to env vars
-	// flags are converted to upper-case, - is replaced with _
-	err := viper.BindPFlags(pflag.CommandLine)
+	flag.Parse()
+	logger.SetLogger(logger.NewLogger(logOptions))
+
+	leaderElectionId := fmt.Sprintf("%s-%s", controllerName, "leader-election")
+	if watchOptions.LabelSelector != "" {
+		leaderElectionId = leaderelection.GenerateID(leaderElectionId, watchOptions.LabelSelector)
+	}
+
+	watchNamespace := ""
+	if !watchOptions.AllNamespaces {
+		watchNamespace = os.Getenv("RUNTIME_NAMESPACE")
+	}
+
+	watchSelector, err := helper.GetWatchSelector(watchOptions)
 	if err != nil {
-		setupLog.Error(err, "Failed parsing command line arguments")
+		setupLog.Error(err, "unable to configure watch label selector for manager")
 		os.Exit(1)
 	}
 
-	replacer := strings.NewReplacer("-", "_")
-	viper.SetEnvKeyReplacer(replacer)
-	viper.AutomaticEnv()
-
-	ns := strings.Split(viper.GetString("namespaces"), ",")
 	opts := ctrl.Options{
-		Scheme:                  scheme,
-		MetricsBindAddress:      viper.GetString("metrics-addr"),
-		HealthProbeBindAddress:  viper.GetString("probe-addr"),
-		PprofBindAddress:        viper.GetString("pprof-addr"),
-		LeaderElection:          viper.GetBool("enable-leader-election"),
-		LeaderElectionNamespace: viper.GetString("leader-election-namespace"),
-		LeaderElectionID:        "k8sgrowthbook-controller",
-		Cache: cache.Options{
-			Namespaces: ns,
+		Scheme:                        scheme,
+		MetricsBindAddress:            metricsAddr,
+		HealthProbeBindAddress:        healthAddr,
+		LeaderElection:                leaderElectionOptions.Enable,
+		LeaderElectionReleaseOnCancel: leaderElectionOptions.ReleaseOnCancel,
+		LeaseDuration:                 &leaderElectionOptions.LeaseDuration,
+		RenewDeadline:                 &leaderElectionOptions.RenewDeadline,
+		RetryPeriod:                   &leaderElectionOptions.RetryPeriod,
+		GracefulShutdownTimeout:       &gracefulShutdownTimeout,
+		Port:                          9443,
+		LeaderElectionID:              leaderElectionId,
+		Cache: ctrlcache.Options{
+			ByObject: map[ctrlclient.Object]ctrlcache.ByObject{
+				&infrav1beta1.GrowthbookInstance{}:     {Label: watchSelector},
+				&infrav1beta1.GrowthbookOrganization{}: {Label: watchSelector},
+				&infrav1beta1.GrowthbookFeature{}:      {Label: watchSelector},
+				&infrav1beta1.GrowthbookClient{}:       {Label: watchSelector},
+			},
+			Namespaces: []string{watchNamespace},
 		},
-	}
-
-	if len(ns) > 0 {
-		setupLog.Info("watching dedicated namespaces", "namespaces", ns)
-	} else {
-		setupLog.Info("watching all namespaces")
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), opts)
@@ -129,20 +145,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	pReconciler := &controllers.GrowthbookInstanceReconciler{
+	reconciler := &controllers.GrowthbookInstanceReconciler{
 		Client:           mgr.GetClient(),
 		Log:              ctrl.Log.WithName("controllers").WithName("GrowthbookInstance"),
 		Scheme:           mgr.GetScheme(),
 		Recorder:         mgr.GetEventRecorderFor("GrowthbookInstance"),
 		DatabaseProvider: controllers.MongoDBProvider,
 	}
-	if err = pReconciler.SetupWithManager(mgr, controllers.GrowthbookInstanceReconcilerOptions{MaxConcurrentReconciles: viper.GetInt("concurrent")}); err != nil {
+
+	if err = reconciler.SetupWithManager(mgr, controllers.GrowthbookInstanceReconcilerOptions{MaxConcurrentReconciles: concurrent}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GrowthbookInstance")
 		os.Exit(1)
 	}
 
 	// +kubebuilder:scaffold:builder
-
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")

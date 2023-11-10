@@ -3,4 +3,4 @@ kind: Namespace
 metadata:
   labels:
     control-plane: controller
-  name: k8sgrowthbook-system
+  name: growthbook-system

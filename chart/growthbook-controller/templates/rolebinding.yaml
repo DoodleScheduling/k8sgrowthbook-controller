@@ -1,25 +1,23 @@
-{{- if .Values.clusterRBAC.enabled -}}
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
-  name: {{ template "k8sgrowthbook-controller.fullname" . }}
+  name: {{ template "growthbook-controller.fullname" . }}
   labels:
-    app.kubernetes.io/name: {{ include "k8sgrowthbook-controller.name" . }}
+    app.kubernetes.io/name: {{ include "growthbook-controller.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    helm.sh/chart: {{ include "k8sgrowthbook-controller.chart" . }}
+    helm.sh/chart: {{ include "growthbook-controller.chart" . }}
   annotations:
     {{- toYaml .Values.annotations | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: {{ template "k8sgrowthbook-controller.fullname" . }}
+  kind: Role
+  name: {{ template "growthbook-controller.fullname" . }}
 subjects:
 - kind: ServiceAccount
   {{- if .Values.serviceAccount.create  }}
-  name: {{ template "k8sgrowthbook-controller.fullname" . }}
+  name: {{ template "growthbook-controller.fullname" . }}
   {{- else }}
   name: {{ .Values.serviceAccount.name }}
   {{- end }}
   namespace: {{ .Release.Namespace }}
-{{- end }}

@@ -9,7 +9,7 @@ helmCharts:
   name: mongodb
   version: 13.10.2
   releaseName: mongodb
-  namespace: k8sgrowthbook-system
+  namespace: growthbook-system
   valuesInline:
     persistence:
       enabled: false

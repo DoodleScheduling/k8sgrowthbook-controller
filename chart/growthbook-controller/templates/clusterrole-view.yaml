@@ -2,14 +2,13 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "k8sgrowthbook-controller.fullname" . }}-edit
+  name: {{ template "growthbook-controller.fullname" . }}-view
   labels:
-    app.kubernetes.io/name: {{ include "k8sgrowthbook-controller.name" . }}
+    app.kubernetes.io/name: {{ include "growthbook-controller.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    helm.sh/chart: {{ include "k8sgrowthbook-controller.chart" . }}
-    rbac.authorization.k8s.io/aggregate-to-edit: "true"
-    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    helm.sh/chart: {{ include "growthbook-controller.chart" . }}
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
   annotations:
     {{- toYaml .Values.annotations | nindent 4 }}
 rules:
@@ -18,36 +17,24 @@ rules:
   resources:
   - growthbookclients
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - growthbook.infra.doodle.com
   resources:
   - growthbookfeatures
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - growthbook.infra.doodle.com
   resources:
   - growthbookinstances
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - growthbook.infra.doodle.com
@@ -55,30 +42,20 @@ rules:
   - growthbookinstances/status
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - growthbook.infra.doodle.com
   resources:
   - growthbookorganizations
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - growthbook.infra.doodle.com
   resources:
   - growthbookusers
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 {{- end }}

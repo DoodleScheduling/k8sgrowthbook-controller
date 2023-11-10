@@ -7,7 +7,7 @@ spec:
   suspend: false
   prune: false
   mongodb:
-    uri: mongodb://mongodb.k8sgrowthbook-system:27017/growthbook
+    uri: mongodb://mongodb.growthbook-system:27017/growthbook
     rootSecret:
       name: growthbook-mongodb-credentials
   resourceSelector:

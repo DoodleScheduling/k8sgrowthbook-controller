@@ -4,6 +4,6 @@ COPY manager manager
 USER 65532:65532
 
 # User env is required by opentelemetry-go
-ENV USER=k8sgrowthbook-controller
+ENV USER=growthbook-controller
 
 ENTRYPOINT ["/manager"]

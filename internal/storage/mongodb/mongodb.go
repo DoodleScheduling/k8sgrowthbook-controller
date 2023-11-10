@@ -3,7 +3,7 @@ package mongodb
 import (
 	"context"
 
-	"github.com/DoodleScheduling/k8sgrowthbook-controller/internal/storage"
+	"github.com/DoodleScheduling/growthbook-controller/internal/storage"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
