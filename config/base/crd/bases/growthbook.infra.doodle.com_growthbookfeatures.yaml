@@ -53,6 +53,100 @@ spec:
                       type: boolean
                     name:
                       type: string
+                    rules:
+                      items:
+                        properties:
+                          bucketVersion:
+                            format: int64
+                            type: integer
+                          condition:
+                            type: string
+                          coverage:
+                            type: string
+                          description:
+                            type: string
+                          disableStickyBucketing:
+                            type: boolean
+                          enabled:
+                            type: boolean
+                          fallbackAttribute:
+                            type: string
+                          hashAttribute:
+                            type: string
+                          id:
+                            type: string
+                          minBucketVersion:
+                            format: int64
+                            type: integer
+                          namespace:
+                            properties:
+                              enabled:
+                                type: boolean
+                              name:
+                                type: string
+                              range:
+                                items:
+                                  format: int64
+                                  type: integer
+                                type: array
+                            type: object
+                          prerequisites:
+                            items:
+                              properties:
+                                condition:
+                                  type: string
+                                id:
+                                  type: string
+                              type: object
+                            type: array
+                          savedGroups:
+                            items:
+                              properties:
+                                ids:
+                                  items:
+                                    type: string
+                                  type: array
+                                match:
+                                  enum:
+                                  - all
+                                  - none
+                                  - any
+                                  type: string
+                              type: object
+                            type: array
+                          scheduleRules:
+                            items:
+                              properties:
+                                enabled:
+                                  type: boolean
+                                timestamp:
+                                  type: string
+                              type: object
+                            type: array
+                          trackingKey:
+                            type: string
+                          type:
+                            enum:
+                            - force
+                            - rollout
+                            - experiment
+                            type: string
+                          value:
+                            type: string
+                          values:
+                            items:
+                              properties:
+                                name:
+                                  type: string
+                                value:
+                                  type: string
+                                weight:
+                                  format: int64
+                                  type: integer
+                              type: object
+                            type: array
+                        type: object
+                      type: array
                   type: object
                 type: array
               id:
@@ -62,6 +156,11 @@ spec:
                   type: string
                 type: array
               valueType:
+                enum:
+                - boolean
+                - string
+                - number
+                - json
                 type: string
             type: object
         type: object

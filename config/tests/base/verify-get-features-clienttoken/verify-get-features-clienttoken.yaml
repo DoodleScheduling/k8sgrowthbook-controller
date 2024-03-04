@@ -14,7 +14,7 @@ spec:
     - /bin/sh
     - "-c"
     - |
-      curl --fail -vvv http://growthbook-api/api/features/sdk-token | grep '{"status":200,"features":{"feature-b":{"defaultValue":true},"feature-a":{"defaultValue":false}}\|{"status":200,"features":{"feature-a":{"defaultValue":true},"feature-b":{"defaultValue":false}}'
+      curl --fail -vvv http://growthbook-api/api/features/sdk-token | grep '{"status":200,"features":{"feature-a":{"defaultValue":true},"feature-b":{"defaultValue":false},"feature-c":{"defaultValue":false,"rules":\[{"condition":{"segments":{"$elemMatch":{"$eq":"TIER_ENTERPRISE"}}},"force":true},{"condition":{"locale":"de"},"force":true,"coverage":0.1,"hashAttribute":"userId"}\]}}'
     resources: {}
     securityContext:
       allowPrivilegeEscalation: false

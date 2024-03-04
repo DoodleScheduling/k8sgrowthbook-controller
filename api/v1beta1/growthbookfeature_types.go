@@ -31,6 +31,7 @@ type GrowthbookFeatureSpec struct {
 	Environments []Environment `json:"environments,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=boolean;string;number;json
 type FeatureValueType string
 
 var (
@@ -39,6 +40,72 @@ var (
 	FeatureValueTypeNumber  FeatureValueType = "number"
 	FeatureValueTypeJSON    FeatureValueType = "json"
 )
+
+// +kubebuilder:validation:Enum=all;none;any
+type SavedGroupTargetingMatch string
+
+var (
+	SavedGroupTargetingMatchAll  SavedGroupTargetingMatch = "all"
+	SavedGroupTargetingMatchNone SavedGroupTargetingMatch = "none"
+	SavedGroupTargetingMatchAny  SavedGroupTargetingMatch = "any"
+)
+
+// +kubebuilder:validation:Enum=force;rollout;experiment
+type FeatureRuleType string
+
+var (
+	FeatureRuleTypeForce      FeatureRuleType = "force"
+	FeatureRuleTypeRollout    FeatureRuleType = "rollout"
+	FeatureRuleTypeExperiment FeatureRuleType = "experiment"
+)
+
+type FeatureRule struct {
+	ID                     string                `json:"id,omitempty"`
+	Type                   FeatureRuleType       `json:"type,omitempty"`
+	Description            string                `json:"description,omitempty"`
+	Condition              string                `json:"condition,omitempty"`
+	Enabled                bool                  `json:"enabled,omitempty"`
+	ScheduleRules          []ScheduleRule        `json:"scheduleRules,omitempty"`
+	SavedGroups            []SavedGroupTargeting `json:"savedGroups,omitempty"`
+	Prerequisites          []FeaturePrerequisite `json:"prerequisites,omitempty"`
+	Value                  string                `json:"value,omitempty"`
+	Coverage               string                `json:"coverage,omitempty"`
+	HashAttribute          string                `json:"hashAttribute,omitempty"`
+	TrackingKey            string                `json:"trackingKey,omitempty"`
+	FallbackAttribute      *string               `json:"fallbackAttribute,omitempty"`
+	DisableStickyBucketing *bool                 `json:"disableStickyBucketing,omitempty"`
+	BucketVersion          *int64                `json:"bucketVersion,omitempty"`
+	MinBucketVersion       *int64                `json:"minBucketVersion,omitempty"`
+	Namespace              *NamespaceValue       `json:"namespace,omitempty"`
+	Values                 []ExperimentValue     `json:"values,omitempty"`
+}
+
+type FeaturePrerequisite struct {
+	ID        string `json:"id,omitempty"`
+	Condition string `json:"condition,omitempty"`
+}
+
+type ScheduleRule struct {
+	Timestamp string `json:"timestamp,omitempty"`
+	Enabled   bool   `json:"enabled,omitempty"`
+}
+
+type SavedGroupTargeting struct {
+	Match SavedGroupTargetingMatch `json:"match,omitempty"`
+	IDs   []string                 `json:"ids,omitempty"`
+}
+
+type ExperimentValue struct {
+	Value  string  `json:"value,omitempty"`
+	Weight int64   `json:"weight,omitempty"`
+	Name   *string `json:"name,omitempty"`
+}
+
+type NamespaceValue struct {
+	Enabled bool    `json:"enabled,omitempty"`
+	Name    string  `json:"name,omitempty"`
+	Range   []int64 `json:"range,omitempty"`
+}
 
 // GetID returns the feature ID which is the resource name if not overwritten by spec.ID
 func (f *GrowthbookFeature) GetID() string {
@@ -51,8 +118,9 @@ func (f *GrowthbookFeature) GetID() string {
 
 // Environment defines a grothbook environment
 type Environment struct {
-	Name    string `json:"name,omitempty"`
-	Enabled bool   `json:"enabled,omitempty"`
+	Name    string        `json:"name,omitempty"`
+	Enabled bool          `json:"enabled,omitempty"`
+	Rules   []FeatureRule `json:"rules,omitempty"`
 }
 
 // +kubebuilder:object:root=true

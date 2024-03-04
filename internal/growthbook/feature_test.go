@@ -34,6 +34,16 @@ func TestFeatureFromV1beta1(t *testing.T) {
 				{
 					Name: "dev",
 				},
+				{
+					Name:    "other",
+					Enabled: true,
+					Rules: []v1beta1.FeatureRule{
+						{
+							Type:  v1beta1.FeatureRuleTypeForce,
+							Value: "false",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -47,6 +57,8 @@ func TestFeatureFromV1beta1(t *testing.T) {
 	g.Expect(string(f.ValueType)).To(Equal(string(apiSpec.Spec.ValueType)))
 	g.Expect(f.EnvironmentSettings["production"].Enabled).To(BeTrue())
 	g.Expect(f.EnvironmentSettings["dev"].Enabled).To(BeFalse())
+	g.Expect(f.EnvironmentSettings["other"].Enabled).To(BeTrue())
+	g.Expect(f.EnvironmentSettings["other"].Rules).To(Equal([]FeatureRule{{Type: FeatureRuleTypeForce, Value: "false"}}))
 
 	apiSpec.Spec.ID = "custom"
 	f.FromV1beta1(apiSpec)
@@ -104,13 +116,26 @@ func TestFeatureNoUpdate(t *testing.T) {
 	db := &MockDatabase{
 		FindOne: func(ctx context.Context, filter, dst interface{}) error {
 			dst.(*Feature).ID = "id"
-			dst.(*Feature).EnvironmentSettings = make(map[string]EnvironmentSetting)
+			dst.(*Feature).EnvironmentSettings = map[string]EnvironmentSetting{
+				"dev": {
+					Rules: []FeatureRule{
+						{
+							ID:    "existing_rule",
+							Type:  "force",
+							Value: "test",
+						},
+					},
+				},
+			}
 			return nil
 		},
 	}
 
 	feature := Feature{
 		ID: "id",
+		EnvironmentSettings: map[string]EnvironmentSetting{
+			"dev": {},
+		},
 	}
 
 	err := UpdateFeature(context.TODO(), feature, db)
@@ -127,7 +152,17 @@ func TestFeatureUpdate(t *testing.T) {
 		FindOne: func(ctx context.Context, filter, dst interface{}) error {
 			dst.(*Feature).ID = "id"
 			dst.(*Feature).DefaultValue = "current-value"
-			dst.(*Feature).EnvironmentSettings = make(map[string]EnvironmentSetting)
+			dst.(*Feature).EnvironmentSettings = map[string]EnvironmentSetting{
+				"dev": {
+					Rules: []FeatureRule{
+						{
+							ID:    "existing_rule",
+							Type:  "force",
+							Value: "test",
+						},
+					},
+				},
+			}
 			return nil
 		},
 		UpdateOne: func(ctx context.Context, filter, doc interface{}) error {
@@ -138,9 +173,19 @@ func TestFeatureUpdate(t *testing.T) {
 	}
 
 	feature := Feature{
-		ID:                  "id",
-		DefaultValue:        "new-value",
-		EnvironmentSettings: make(map[string]EnvironmentSetting),
+		ID:           "id",
+		DefaultValue: "new-value",
+		EnvironmentSettings: map[string]EnvironmentSetting{
+			"dev": {
+				Rules: []FeatureRule{
+					{
+						ID:       "percentage_rollout",
+						Type:     "rollout",
+						Coverage: 0.1,
+					},
+				},
+			},
+		},
 	}
 
 	expectedDoc, _ := bson.Marshal(feature)
@@ -156,6 +201,8 @@ func TestFeatureUpdate(t *testing.T) {
 	updateBSON := updateDocSet[0].Value.(bson.Raw)
 	newDefaultValue := updateBSON.Lookup("defaultValue")
 	newDateUpdatedValue := updateBSON.Lookup("dateUpdated")
+	newEnvironmentSettings := updateBSON.Lookup("environmentSettings")
+	g.Expect(newEnvironmentSettings).To(Equal(bson.Raw(expectedDoc).Lookup("environmentSettings")))
 
 	g.Expect(newDefaultValue).To(Equal(bson.Raw(expectedDoc).Lookup("defaultValue")))
 	dateUpdated := newDateUpdatedValue.Time()
