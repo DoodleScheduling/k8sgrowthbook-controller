@@ -17,7 +17,7 @@ var (
 	FeatureValueTypeBoolean FeatureValueType = "boolean"
 	FeatureValueTypeString  FeatureValueType = "string"
 	FeatureValueTypeNumber  FeatureValueType = "number"
-	FeatureValueTypebson    FeatureValueType = "bson"
+	FeatureValueTypeJSON    FeatureValueType = "json"
 )
 
 type Feature struct {
