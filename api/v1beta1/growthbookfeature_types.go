@@ -60,7 +60,6 @@ var (
 )
 
 type FeatureRule struct {
-	ID                     string                `json:"id,omitempty"`
 	Type                   FeatureRuleType       `json:"type,omitempty"`
 	Description            string                `json:"description,omitempty"`
 	Condition              string                `json:"condition,omitempty"`

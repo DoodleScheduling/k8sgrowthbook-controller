@@ -159,7 +159,6 @@ func (f *Feature) FromV1beta1(feature v1beta1.GrowthbookFeature) *Feature {
 
 			coverage, _ := strconv.ParseFloat(rule.Coverage, 64)
 			storeRule := FeatureRule{
-				ID:                     rule.ID,
 				Type:                   FeatureRuleType(rule.Type),
 				Description:            rule.Description,
 				Condition:              rule.Condition,
@@ -244,12 +243,12 @@ func UpdateFeature(ctx context.Context, feature Feature, db storage.Database) er
 	}
 
 	for env, settings := range feature.EnvironmentSettings {
-		if _, ok := existing.EnvironmentSettings[env]; ok {
+		if existingSettings, ok := existing.EnvironmentSettings[env]; ok {
 			s := existing.EnvironmentSettings[env]
 			s.Enabled = settings.Enabled
 
 			if settings.Rules != nil {
-				s.Rules = settings.Rules
+				s.Rules = mergeRules(existingSettings.Rules, settings.Rules)
 			}
 
 			existing.EnvironmentSettings[env] = s
@@ -287,4 +286,15 @@ func UpdateFeature(ctx context.Context, feature Feature, db storage.Database) er
 	}
 
 	return col.UpdateOne(ctx, filter, update)
+}
+
+func mergeRules(existing, spec []FeatureRule) []FeatureRule {
+	var rules []FeatureRule
+	for _, rule := range existing {
+		if rule.ID != "" {
+			rules = append(rules, rule)
+		}
+	}
+
+	return append(rules, spec...)
 }

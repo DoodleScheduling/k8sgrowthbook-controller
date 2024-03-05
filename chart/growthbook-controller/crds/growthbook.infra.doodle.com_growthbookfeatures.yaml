@@ -73,8 +73,6 @@ spec:
                             type: string
                           hashAttribute:
                             type: string
-                          id:
-                            type: string
                           minBucketVersion:
                             format: int64
                             type: integer

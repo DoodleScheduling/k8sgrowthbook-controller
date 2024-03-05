@@ -160,6 +160,10 @@ func TestFeatureUpdate(t *testing.T) {
 							Type:  "force",
 							Value: "test",
 						},
+						{
+							Type:  "rollout",
+							Value: "another-rule",
+						},
 					},
 				},
 			}
@@ -179,7 +183,6 @@ func TestFeatureUpdate(t *testing.T) {
 			"dev": {
 				Rules: []FeatureRule{
 					{
-						ID:       "percentage_rollout",
 						Type:     "rollout",
 						Coverage: 0.1,
 					},
@@ -202,7 +205,24 @@ func TestFeatureUpdate(t *testing.T) {
 	newDefaultValue := updateBSON.Lookup("defaultValue")
 	newDateUpdatedValue := updateBSON.Lookup("dateUpdated")
 	newEnvironmentSettings := updateBSON.Lookup("environmentSettings")
-	g.Expect(newEnvironmentSettings).To(Equal(bson.Raw(expectedDoc).Lookup("environmentSettings")))
+	expectedEnvironmentSettings, _ := bson.Marshal(Feature{
+		EnvironmentSettings: map[string]EnvironmentSetting{
+			"dev": {
+				Rules: []FeatureRule{
+					{
+						ID:    "existing_rule",
+						Type:  "force",
+						Value: "test",
+					},
+					{
+						Type:     "rollout",
+						Coverage: 0.1,
+					},
+				},
+			},
+		}})
+
+	g.Expect(newEnvironmentSettings).To(Equal(bson.Raw(expectedEnvironmentSettings).Lookup("environmentSettings")))
 
 	g.Expect(newDefaultValue).To(Equal(bson.Raw(expectedDoc).Lookup("defaultValue")))
 	dateUpdated := newDateUpdatedValue.Time()
