@@ -246,11 +246,7 @@ func UpdateFeature(ctx context.Context, feature Feature, db storage.Database) er
 		if existingSettings, ok := existing.EnvironmentSettings[env]; ok {
 			s := existing.EnvironmentSettings[env]
 			s.Enabled = settings.Enabled
-
-			if settings.Rules != nil {
-				s.Rules = mergeRules(existingSettings.Rules, settings.Rules)
-			}
-
+			s.Rules = mergeRules(existingSettings.Rules, settings.Rules)
 			existing.EnvironmentSettings[env] = s
 		} else {
 			existing.EnvironmentSettings[env] = EnvironmentSetting{
