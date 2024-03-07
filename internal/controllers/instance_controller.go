@@ -562,7 +562,7 @@ func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, insta
 			}
 
 			if username != "" {
-				u.Email = username
+				u.Name = username
 			}
 
 			if err := u.SetPassword(ctx, db, password); err != nil {

@@ -7,14 +7,14 @@ metadata:
 spec:
   restartPolicy: OnFailure
   containers:
-  - image: curlimages/curl:8.1.2
+  - image: jonlabelle/network-tools
     imagePullPolicy: IfNotPresent
     name: verify
     command:
     - /bin/sh
     - "-c"
     - |
-      curl --fail -vvv http://growthbook-api/api/features/sdk-token | grep '{"status":200,"features":{"feature-b":{"defaultValue":true},"feature-a":{"defaultValue":false}}\|{"status":200,"features":{"feature-a":{"defaultValue":true},"feature-b":{"defaultValue":false}}'
+      curl --fail -vvv http://growthbook-api/api/features/sdk-token | jq -c --sort-keys .features  | grep '{"feature-a":{"defaultValue":true},"feature-b":{"defaultValue":false},"feature-c":{"defaultValue":false,"rules":\[{"condition":{"segments":{"$elemMatch":{"$eq":"TIER_ENTERPRISE"}}},"force":true},{"condition":{"locale":"de"},"coverage":0.1,"force":true,"hashAttribute":"userId"}]}}'
     resources: {}
     securityContext:
       allowPrivilegeEscalation: false

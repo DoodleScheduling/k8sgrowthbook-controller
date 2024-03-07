@@ -88,6 +88,36 @@ spec:
     enabled: true
 ---
 apiVersion: growthbook.infra.doodle.com/v1beta1
+kind: GrowthbookFeature
+metadata:
+  name: feature-c
+  labels:
+    growthbook-org: my-org
+    growthbook-instance: my-instance
+spec:
+  description: feature C
+  defaultValue: "false"
+  valueType: boolean
+  tags:
+  - frontend
+  environments:
+  - name: "production"
+    enabled: true
+    rules:
+    - type: "force"
+      description: "enterprise user segments are enabled"
+      value: "true"
+      enabled: true
+      condition: "{\"segments\": {\"$elemMatch\": {\"$eq\": \"TIER_ENTERPRISE\"}}}"
+    - type: "rollout"
+      description: "10% of german locale users are enabled"
+      value: "true"
+      enabled: true
+      condition: "{\"locale\": \"de\"}"
+      coverage: "0.1"
+      hashAttribute: "userId"
+---
+apiVersion: growthbook.infra.doodle.com/v1beta1
 kind: GrowthbookClient
 metadata:
   name: client-1
