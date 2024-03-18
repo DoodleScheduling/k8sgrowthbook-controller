@@ -112,6 +112,23 @@ spec:
   environments:
   - name: "production"
     enabled: true
+    rules:
+    - type: force
+      enabled: true
+      description: |
+        Enterprise tiers
+      condition: |
+        {
+          "tier": {
+            "$elemMatch": {
+              "$in": [
+                "ENTERPRISE",
+                "FULL"
+              ]
+            }
+          }
+        }
+      value: "999"
 ---
 apiVersion: growthbook.infra.doodle.com/v1beta1
 kind: GrowthbookFeature
