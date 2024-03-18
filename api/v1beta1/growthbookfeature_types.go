@@ -54,29 +54,37 @@ var (
 type FeatureRuleType string
 
 var (
-	FeatureRuleTypeForce      FeatureRuleType = "force"
-	FeatureRuleTypeRollout    FeatureRuleType = "rollout"
-	FeatureRuleTypeExperiment FeatureRuleType = "experiment"
+	FeatureRuleTypeForce         FeatureRuleType = "force"
+	FeatureRuleTypeRollout       FeatureRuleType = "rollout"
+	FeatureRuleTypeExperiment    FeatureRuleType = "experiment"
+	FeatureRuleTypeExperimentRef FeatureRuleType = "experiment-ref"
 )
 
 type FeatureRule struct {
-	Type                   FeatureRuleType       `json:"type,omitempty"`
-	Description            string                `json:"description,omitempty"`
-	Condition              string                `json:"condition,omitempty"`
-	Enabled                bool                  `json:"enabled,omitempty"`
-	ScheduleRules          []ScheduleRule        `json:"scheduleRules,omitempty"`
-	SavedGroups            []SavedGroupTargeting `json:"savedGroups,omitempty"`
-	Prerequisites          []FeaturePrerequisite `json:"prerequisites,omitempty"`
-	Value                  string                `json:"value,omitempty"`
-	Coverage               string                `json:"coverage,omitempty"`
-	HashAttribute          string                `json:"hashAttribute,omitempty"`
-	TrackingKey            string                `json:"trackingKey,omitempty"`
-	FallbackAttribute      *string               `json:"fallbackAttribute,omitempty"`
-	DisableStickyBucketing *bool                 `json:"disableStickyBucketing,omitempty"`
-	BucketVersion          *int64                `json:"bucketVersion,omitempty"`
-	MinBucketVersion       *int64                `json:"minBucketVersion,omitempty"`
-	Namespace              *NamespaceValue       `json:"namespace,omitempty"`
-	Values                 []ExperimentValue     `json:"values,omitempty"`
+	Type                   FeatureRuleType          `json:"type,omitempty"`
+	Description            string                   `json:"description,omitempty"`
+	Condition              string                   `json:"condition,omitempty"`
+	Enabled                bool                     `json:"enabled,omitempty"`
+	ScheduleRules          []ScheduleRule           `json:"scheduleRules,omitempty"`
+	SavedGroups            []SavedGroupTargeting    `json:"savedGroups,omitempty"`
+	Prerequisites          []FeaturePrerequisite    `json:"prerequisites,omitempty"`
+	Value                  string                   `json:"value,omitempty"`
+	Coverage               string                   `json:"coverage,omitempty"`
+	HashAttribute          string                   `json:"hashAttribute,omitempty"`
+	TrackingKey            string                   `json:"trackingKey,omitempty"`
+	FallbackAttribute      *string                  `json:"fallbackAttribute,omitempty"`
+	DisableStickyBucketing *bool                    `json:"disableStickyBucketing,omitempty"`
+	BucketVersion          *int64                   `json:"bucketVersion,omitempty"`
+	MinBucketVersion       *int64                   `json:"minBucketVersion,omitempty"`
+	Namespace              *NamespaceValue          `json:"namespace,omitempty"`
+	Values                 []ExperimentValue        `json:"values,omitempty"`
+	ExperimentID           string                   `json:"experimentId,omitempty"`
+	Variations             []ExperimentRefVariation `json:"variations,omitempty"`
+}
+
+type ExperimentRefVariation struct {
+	VariationId string `json:"variationId,omitempty"`
+	Value       string `json:"value,omitempty"`
 }
 
 type FeaturePrerequisite struct {

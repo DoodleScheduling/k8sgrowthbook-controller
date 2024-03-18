@@ -52,30 +52,38 @@ var (
 type FeatureRuleType string
 
 var (
-	FeatureRuleTypeForce      FeatureRuleType = "force"
-	FeatureRuleTypeRollout    FeatureRuleType = "rollout"
-	FeatureRuleTypeExperiment FeatureRuleType = "experiment"
+	FeatureRuleTypeForce         FeatureRuleType = "force"
+	FeatureRuleTypeRollout       FeatureRuleType = "rollout"
+	FeatureRuleTypeExperiment    FeatureRuleType = "experiment"
+	FeatureRuleTypeExperimentRef FeatureRuleType = "experiment-ref"
 )
 
 type FeatureRule struct {
-	ID                     string                `bson:"id,omitempty"`
-	Type                   FeatureRuleType       `bson:"type,omitempty"`
-	Description            string                `bson:"description,omitempty"`
-	Condition              string                `bson:"condition,omitempty"`
-	Enabled                bool                  `bson:"enabled,omitempty"`
-	ScheduleRules          []ScheduleRule        `bson:"scheduleRules,omitempty"`
-	SavedGroups            []SavedGroupTargeting `bson:"savedGroups,omitempty"`
-	Prerequisites          []FeaturePrerequisite `bson:"prerequisites,omitempty"`
-	Value                  string                `bson:"value,omitempty"`
-	Coverage               float64               `bson:"coverage,omitempty"`
-	HashAttribute          string                `bson:"hashAttribute,omitempty"`
-	TrackingKey            string                `bson:"trackingKey,omitempty"`
-	FallbackAttribute      *string               `bson:"fallbackAttribute,omitempty"`
-	DisableStickyBucketing *bool                 `bson:"disableStickyBucketing,omitempty"`
-	BucketVersion          *int64                `bson:"bucketVersion,omitempty"`
-	MinBucketVersion       *int64                `bson:"minBucketVersion,omitempty"`
-	Namespace              *NamespaceValue       `bson:"namespace,omitempty"`
-	Values                 []ExperimentValue     `bson:"values,omitempty"`
+	ID                     string                   `bson:"id,omitempty"`
+	Type                   FeatureRuleType          `bson:"type,omitempty"`
+	Description            string                   `bson:"description,omitempty"`
+	Condition              string                   `bson:"condition,omitempty"`
+	Enabled                bool                     `bson:"enabled,omitempty"`
+	ScheduleRules          []ScheduleRule           `bson:"scheduleRules,omitempty"`
+	SavedGroups            []SavedGroupTargeting    `bson:"savedGroups,omitempty"`
+	Prerequisites          []FeaturePrerequisite    `bson:"prerequisites,omitempty"`
+	Value                  string                   `bson:"value,omitempty"`
+	Coverage               float64                  `bson:"coverage,omitempty"`
+	HashAttribute          string                   `bson:"hashAttribute,omitempty"`
+	TrackingKey            string                   `bson:"trackingKey,omitempty"`
+	FallbackAttribute      *string                  `bson:"fallbackAttribute,omitempty"`
+	DisableStickyBucketing *bool                    `bson:"disableStickyBucketing,omitempty"`
+	BucketVersion          *int64                   `bson:"bucketVersion,omitempty"`
+	MinBucketVersion       *int64                   `bson:"minBucketVersion,omitempty"`
+	Namespace              *NamespaceValue          `bson:"namespace,omitempty"`
+	Values                 []ExperimentValue        `bson:"values,omitempty"`
+	ExperimentID           string                   `bson:"experimentId,omitempty"`
+	Variations             []ExperimentRefVariation `bson:"variations,omitempty"`
+}
+
+type ExperimentRefVariation struct {
+	VariationId string `bson:"variationId,omitempty"`
+	Value       string `bson:"value,omitempty"`
 }
 
 type FeaturePrerequisite struct {

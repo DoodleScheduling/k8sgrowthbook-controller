@@ -69,6 +69,8 @@ spec:
                             type: boolean
                           enabled:
                             type: boolean
+                          experimentId:
+                            type: string
                           fallbackAttribute:
                             type: string
                           hashAttribute:
@@ -141,6 +143,15 @@ spec:
                                 weight:
                                   format: int64
                                   type: integer
+                              type: object
+                            type: array
+                          variations:
+                            items:
+                              properties:
+                                value:
+                                  type: string
+                                variationId:
+                                  type: string
                               type: object
                             type: array
                         type: object
