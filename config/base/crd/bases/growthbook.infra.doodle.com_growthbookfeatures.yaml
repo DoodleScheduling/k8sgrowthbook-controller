@@ -130,6 +130,7 @@ spec:
                             - force
                             - rollout
                             - experiment
+                            - experiment-ref
                             type: string
                           value:
                             type: string

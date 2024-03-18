@@ -50,7 +50,7 @@ var (
 	SavedGroupTargetingMatchAny  SavedGroupTargetingMatch = "any"
 )
 
-// +kubebuilder:validation:Enum=force;rollout;experiment
+// +kubebuilder:validation:Enum=force;rollout;experiment;experiment-ref
 type FeatureRuleType string
 
 var (
