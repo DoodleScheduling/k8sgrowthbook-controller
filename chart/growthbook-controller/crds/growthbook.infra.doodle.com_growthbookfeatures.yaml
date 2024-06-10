@@ -57,8 +57,7 @@ spec:
                       items:
                         properties:
                           bucketVersion:
-                            format: int64
-                            type: integer
+                            type: string
                           condition:
                             type: string
                           coverage:
@@ -76,8 +75,7 @@ spec:
                           hashAttribute:
                             type: string
                           minBucketVersion:
-                            format: int64
-                            type: integer
+                            type: string
                           namespace:
                             properties:
                               enabled:
@@ -86,8 +84,7 @@ spec:
                                 type: string
                               range:
                                 items:
-                                  format: int64
-                                  type: integer
+                                  type: string
                                 type: array
                             type: object
                           prerequisites:
@@ -142,8 +139,7 @@ spec:
                                 value:
                                   type: string
                                 weight:
-                                  format: int64
-                                  type: integer
+                                  type: string
                               type: object
                             type: array
                           variations:

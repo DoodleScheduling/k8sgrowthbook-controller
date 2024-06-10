@@ -20,7 +20,7 @@ func (d *MockDisconnect) Disconnect(ctx context.Context) error {
 }
 
 type MockDatabase struct {
-	FindOne    func(ctx context.Context, filter interface{}, dst interface{}) error
+	FindOne    func(ctx context.Context, filter interface{}) (storage.Decoder, error)
 	DeleteOne  func(ctx context.Context, filter interface{}) error
 	InsertOne  func(ctx context.Context, doc interface{}) error
 	UpdateOne  func(ctx context.Context, filter interface{}, doc interface{}) error
@@ -33,16 +33,28 @@ func (d *MockDatabase) Collection(collName string) storage.Collection {
 	}
 }
 
+type MockResult struct {
+	decode func(v interface{}) error
+}
+
+func (r *MockResult) Decode(dst interface{}) error {
+	if r.decode != nil {
+		return r.decode(dst)
+	}
+
+	return nil
+}
+
 type MockCollection struct {
 	db *MockDatabase
 }
 
-func (c *MockCollection) FindOne(ctx context.Context, filter interface{}, dst interface{}) error {
+func (c *MockCollection) FindOne(ctx context.Context, filter interface{}) (storage.Decoder, error) {
 	if c.db.FindOne == nil {
-		return errors.New("no mock func for findOne provided")
+		return nil, errors.New("no mock func for findOne provided")
 	}
 
-	return c.db.FindOne(ctx, filter, dst)
+	return c.db.FindOne(ctx, filter)
 }
 
 func (c *MockCollection) DeleteOne(ctx context.Context, filter interface{}) error {

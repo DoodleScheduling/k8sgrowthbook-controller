@@ -32,8 +32,9 @@ type Collection struct {
 	collection *mongo.Collection
 }
 
-func (c *Collection) FindOne(ctx context.Context, filter interface{}, dst interface{}) error {
-	return c.collection.FindOne(ctx, filter).Decode(dst)
+func (c *Collection) FindOne(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+	res := c.collection.FindOne(ctx, filter)
+	return res, res.Err()
 }
 
 func (c *Collection) DeleteOne(ctx context.Context, filter interface{}) error {

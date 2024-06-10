@@ -47,7 +47,7 @@ func UpdateOrganization(ctx context.Context, org Organization, db storage.Databa
 	}
 
 	var existing Organization
-	err := col.FindOne(ctx, filter, &existing)
+	result, err := col.FindOne(ctx, filter)
 
 	if err != nil {
 		if org.Members == nil {
@@ -56,6 +56,10 @@ func UpdateOrganization(ctx context.Context, org Organization, db storage.Databa
 
 		org.DateCreated = time.Now()
 		return col.InsertOne(ctx, org)
+	}
+
+	if err := result.Decode(&existing); err != nil {
+		return err
 	}
 
 	existingBson, err := bson.Marshal(existing)

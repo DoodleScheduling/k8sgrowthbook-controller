@@ -73,8 +73,8 @@ type FeatureRule struct {
 	TrackingKey            string                   `bson:"trackingKey,omitempty"`
 	FallbackAttribute      *string                  `bson:"fallbackAttribute,omitempty"`
 	DisableStickyBucketing *bool                    `bson:"disableStickyBucketing,omitempty"`
-	BucketVersion          *int64                   `bson:"bucketVersion,omitempty"`
-	MinBucketVersion       *int64                   `bson:"minBucketVersion,omitempty"`
+	BucketVersion          *float64                 `bson:"bucketVersion,omitempty"`
+	MinBucketVersion       *float64                 `bson:"minBucketVersion,omitempty"`
 	Namespace              *NamespaceValue          `bson:"namespace,omitempty"`
 	Values                 []ExperimentValue        `bson:"values,omitempty"`
 	ExperimentID           string                   `bson:"experimentId,omitempty"`
@@ -103,14 +103,14 @@ type SavedGroupTargeting struct {
 
 type ExperimentValue struct {
 	Value  string  `bson:"value,omitempty"`
-	Weight int64   `bson:"weight,omitempty"`
+	Weight float64 `bson:"weight,omitempty"`
 	Name   *string `bson:"name,omitempty"`
 }
 
 type NamespaceValue struct {
-	Enabled bool    `bson:"enabled,omitempty"`
-	Name    string  `bson:"name,omitempty"`
-	Range   []int64 `bson:"range,omitempty"`
+	Enabled bool      `bson:"enabled,omitempty"`
+	Name    string    `bson:"name,omitempty"`
+	Range   []float64 `bson:"range,omitempty"`
 }
 
 func (f *Feature) FromV1beta1(feature v1beta1.GrowthbookFeature) *Feature {
@@ -158,14 +158,26 @@ func (f *Feature) FromV1beta1(feature v1beta1.GrowthbookFeature) *Feature {
 
 			var experimentValues []ExperimentValue
 			for _, experimentValue := range rule.Values {
+				weight, _ := strconv.ParseFloat(experimentValue.Weight, 64)
 				experimentValues = append(experimentValues, ExperimentValue{
 					Value:  experimentValue.Value,
-					Weight: experimentValue.Weight,
+					Weight: weight,
 					Name:   experimentValue.Name,
 				})
 			}
 
 			coverage, _ := strconv.ParseFloat(rule.Coverage, 64)
+			var bucketVersion *float64
+			if rule.BucketVersion != nil {
+				v, _ := strconv.ParseFloat(*rule.BucketVersion, 64)
+				bucketVersion = &v
+			}
+
+			var minBucketVersion *float64
+			if rule.BucketVersion != nil {
+				v, _ := strconv.ParseFloat(*rule.MinBucketVersion, 64)
+				minBucketVersion = &v
+			}
 			storeRule := FeatureRule{
 				Type:                   FeatureRuleType(rule.Type),
 				Description:            rule.Description,
@@ -180,16 +192,22 @@ func (f *Feature) FromV1beta1(feature v1beta1.GrowthbookFeature) *Feature {
 				TrackingKey:            rule.TrackingKey,
 				FallbackAttribute:      rule.FallbackAttribute,
 				DisableStickyBucketing: rule.DisableStickyBucketing,
-				BucketVersion:          rule.BucketVersion,
-				MinBucketVersion:       rule.MinBucketVersion,
+				BucketVersion:          bucketVersion,
+				MinBucketVersion:       minBucketVersion,
 				Values:                 experimentValues,
 			}
 
 			if rule.Namespace != nil {
+				var rangeNamespace []float64
+				for _, v := range rule.Namespace.Range {
+					rangeNumber, _ := strconv.ParseFloat(v, 64)
+					rangeNamespace = append(rangeNamespace, rangeNumber)
+				}
+
 				storeRule.Namespace = &NamespaceValue{
 					Enabled: rule.Namespace.Enabled,
 					Name:    rule.Namespace.Name,
-					Range:   rule.Namespace.Range,
+					Range:   rangeNamespace,
 				}
 			}
 
@@ -226,12 +244,16 @@ func UpdateFeature(ctx context.Context, feature Feature, db storage.Database) er
 	}
 
 	var existing Feature
-	err := col.FindOne(ctx, filter, &existing)
+	result, err := col.FindOne(ctx, filter)
 
 	if err != nil {
 		feature.DateCreated = time.Now()
 		feature.DateUpdated = feature.DateCreated
 		return col.InsertOne(ctx, feature)
+	}
+
+	if err := result.Decode(&existing); err != nil {
+		return err
 	}
 
 	existingBson, err := bson.Marshal(existing)

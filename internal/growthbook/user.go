@@ -39,11 +39,17 @@ func (u *User) SetPassword(ctx context.Context, db storage.Database, password st
 		"id": u.ID,
 	}
 
-	var existing User
-	err := col.FindOne(ctx, filter, &existing)
+	result, errFind := col.FindOne(ctx, filter)
 	var salt string
 
-	if err != nil || strings.Split(existing.PasswordHash, ":")[0] == "" {
+	var existing User
+	if errFind == nil {
+		if err := result.Decode(&existing); err != nil {
+			return err
+		}
+	}
+
+	if errFind != nil || strings.Split(existing.PasswordHash, ":")[0] == "" {
 		buf := make([]byte, saltLen)
 		_, err := rand.Read(buf)
 		if err != nil {
@@ -83,10 +89,14 @@ func UpdateUser(ctx context.Context, user User, db storage.Database) error {
 	}
 
 	var existing User
-	err := col.FindOne(ctx, filter, &existing)
+	result, err := col.FindOne(ctx, filter)
 
 	if err != nil {
 		return col.InsertOne(ctx, user)
+	}
+
+	if err := result.Decode(&existing); err != nil {
+		return err
 	}
 
 	existingBson, err := bson.Marshal(existing)

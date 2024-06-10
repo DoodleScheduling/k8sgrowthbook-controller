@@ -80,7 +80,7 @@ func UpdateSDKConnection(ctx context.Context, sdkconnection SDKConnection, db st
 	}
 
 	var existing SDKConnection
-	err := col.FindOne(ctx, filter, &existing)
+	result, err := col.FindOne(ctx, filter)
 
 	if err != nil {
 		sdkconnection.DateCreated = time.Now()
@@ -105,6 +105,10 @@ func UpdateSDKConnection(ctx context.Context, sdkconnection SDKConnection, db st
 		}
 
 		return clearPayloadCache()
+	}
+
+	if err := result.Decode(&existing); err != nil {
+		return err
 	}
 
 	existingBson, err := bson.Marshal(existing)

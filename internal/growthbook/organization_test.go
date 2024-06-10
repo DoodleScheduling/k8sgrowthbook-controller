@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/DoodleScheduling/growthbook-controller/api/v1beta1"
+	"github.com/DoodleScheduling/growthbook-controller/internal/storage"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -65,8 +66,8 @@ func TestOrganizationCreateIfNotExists(t *testing.T) {
 
 	var insertedDoc Organization
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			return errors.New("does not exists")
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return nil, errors.New("does not exists")
 		},
 		InsertOne: func(ctx context.Context, doc interface{}) error {
 			insertedDoc = doc.(Organization)
@@ -88,9 +89,13 @@ func TestOrganizationNoUpdate(t *testing.T) {
 	g := NewWithT(t)
 
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			dst.(*Organization).ID = "id"
-			return nil
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return &MockResult{
+				decode: func(dst interface{}) error {
+					dst.(*Organization).ID = "id"
+					return nil
+				},
+			}, nil
 		},
 	}
 
@@ -110,19 +115,23 @@ func TestOrganizationUpdate(t *testing.T) {
 	var find bson.Raw
 
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			dst.(*Organization).ID = "id"
-			dst.(*Organization).OwnerEmail = "old@mail.com"
-			dst.(*Organization).Members = []OrganizationMember{
-				{
-					ID: "user",
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return &MockResult{
+				decode: func(dst interface{}) error {
+					dst.(*Organization).ID = "id"
+					dst.(*Organization).OwnerEmail = "old@mail.com"
+					dst.(*Organization).Members = []OrganizationMember{
+						{
+							ID: "user",
+						},
+					}
+
+					f, _ := bson.Marshal(dst)
+					find = f
+
+					return nil
 				},
-			}
-
-			f, _ := bson.Marshal(dst)
-			find = f
-
-			return nil
+			}, nil
 		},
 		UpdateOne: func(ctx context.Context, filter, doc interface{}) error {
 			updateFilter = filter

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/DoodleScheduling/growthbook-controller/api/v1beta1"
+	"github.com/DoodleScheduling/growthbook-controller/internal/storage"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -78,8 +79,8 @@ func TestSDKConnectionCreateIfNotExists(t *testing.T) {
 
 	var insertedDoc SDKConnection
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			return errors.New("does not exists")
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return nil, errors.New("does not exists")
 		},
 		InsertOne: func(ctx context.Context, doc interface{}) error {
 			insertedDoc = doc.(SDKConnection)
@@ -105,9 +106,13 @@ func TestSDKConnectionNoUpdate(t *testing.T) {
 	g := NewWithT(t)
 
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			dst.(*SDKConnection).ID = "id"
-			return nil
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return &MockResult{
+				decode: func(dst interface{}) error {
+					dst.(*SDKConnection).ID = "id"
+					return nil
+				},
+			}, nil
 		},
 	}
 
@@ -127,15 +132,19 @@ func TestSDKConnectionUpdate(t *testing.T) {
 	var find bson.Raw
 
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			dst.(*SDKConnection).ID = "id"
-			dst.(*SDKConnection).EncryptionKey = "key-x"
-			dst.(*SDKConnection).Proxy.SigningKey = "key-y"
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return &MockResult{
+				decode: func(dst interface{}) error {
+					dst.(*SDKConnection).ID = "id"
+					dst.(*SDKConnection).EncryptionKey = "key-x"
+					dst.(*SDKConnection).Proxy.SigningKey = "key-y"
 
-			f, _ := bson.Marshal(dst)
-			find = f
+					f, _ := bson.Marshal(dst)
+					find = f
 
-			return nil
+					return nil
+				},
+			}, nil
 		},
 		UpdateOne: func(ctx context.Context, filter, doc interface{}) error {
 			updateFilter = filter
