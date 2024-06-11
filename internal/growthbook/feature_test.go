@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/DoodleScheduling/growthbook-controller/api/v1beta1"
+	"github.com/DoodleScheduling/growthbook-controller/internal/storage"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -92,8 +93,8 @@ func TestFeatureCreateIfNotExists(t *testing.T) {
 
 	var insertedDoc Feature
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			return errors.New("does not exists")
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return nil, errors.New("does not exists")
 		},
 		InsertOne: func(ctx context.Context, doc interface{}) error {
 			insertedDoc = doc.(Feature)
@@ -114,20 +115,24 @@ func TestFeatureNoUpdate(t *testing.T) {
 	g := NewWithT(t)
 
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			dst.(*Feature).ID = "id"
-			dst.(*Feature).EnvironmentSettings = map[string]EnvironmentSetting{
-				"dev": {
-					Rules: []FeatureRule{
-						{
-							ID:    "existing_rule",
-							Type:  "force",
-							Value: "test",
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return &MockResult{
+				decode: func(dst interface{}) error {
+					dst.(*Feature).ID = "id"
+					dst.(*Feature).EnvironmentSettings = map[string]EnvironmentSetting{
+						"dev": {
+							Rules: []FeatureRule{
+								{
+									ID:    "existing_rule",
+									Type:  "force",
+									Value: "test",
+								},
+							},
 						},
-					},
+					}
+					return nil
 				},
-			}
-			return nil
+			}, nil
 		},
 	}
 
@@ -149,25 +154,30 @@ func TestFeatureUpdate(t *testing.T) {
 	var updateDoc interface{}
 
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			dst.(*Feature).ID = "id"
-			dst.(*Feature).DefaultValue = "current-value"
-			dst.(*Feature).EnvironmentSettings = map[string]EnvironmentSetting{
-				"dev": {
-					Rules: []FeatureRule{
-						{
-							ID:    "existing_rule",
-							Type:  "force",
-							Value: "test",
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return &MockResult{
+				decode: func(dst interface{}) error {
+					dst.(*Feature).ID = "id"
+					dst.(*Feature).DefaultValue = "current-value"
+					dst.(*Feature).EnvironmentSettings = map[string]EnvironmentSetting{
+						"dev": {
+							Rules: []FeatureRule{
+								{
+									ID:    "existing_rule",
+									Type:  "force",
+									Value: "test",
+								},
+								{
+									Type:  "rollout",
+									Value: "another-rule",
+								},
+							},
 						},
-						{
-							Type:  "rollout",
-							Value: "another-rule",
-						},
-					},
+					}
+
+					return nil
 				},
-			}
-			return nil
+			}, nil
 		},
 		UpdateOne: func(ctx context.Context, filter, doc interface{}) error {
 			updateFilter = filter

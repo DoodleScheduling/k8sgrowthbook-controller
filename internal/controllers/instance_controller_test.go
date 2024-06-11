@@ -26,8 +26,8 @@ func MockProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, user
 	// For testing the controller logic the storage adapter just does nothing and returns no error
 	if instance.Spec.MongoDB.URI == "" {
 		return &growthbook.MockDisconnect{}, &growthbook.MockDatabase{
-			FindOne: func(ctx context.Context, filter interface{}, dst interface{}) error {
-				return nil
+			FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+				return &growthbook.MockResult{}, nil
 			},
 			InsertOne: func(ctx context.Context, doc interface{}) error {
 				return nil

@@ -11,9 +11,13 @@ type Database interface {
 }
 
 type Collection interface {
-	FindOne(ctx context.Context, filter interface{}, dst interface{}) error
+	FindOne(ctx context.Context, filter interface{}) (Decoder, error)
 	DeleteOne(ctx context.Context, filter interface{}) error
 	InsertOne(ctx context.Context, doc interface{}) error
 	UpdateOne(ctx context.Context, filter interface{}, doc interface{}) error
 	DeleteMany(ctx context.Context, filter interface{}) error
+}
+
+type Decoder interface {
+	Decode(v interface{}) error
 }

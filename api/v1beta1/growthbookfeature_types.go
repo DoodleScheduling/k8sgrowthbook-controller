@@ -74,8 +74,8 @@ type FeatureRule struct {
 	TrackingKey            string                   `json:"trackingKey,omitempty"`
 	FallbackAttribute      *string                  `json:"fallbackAttribute,omitempty"`
 	DisableStickyBucketing *bool                    `json:"disableStickyBucketing,omitempty"`
-	BucketVersion          *int64                   `json:"bucketVersion,omitempty"`
-	MinBucketVersion       *int64                   `json:"minBucketVersion,omitempty"`
+	BucketVersion          *string                  `json:"bucketVersion,omitempty"`
+	MinBucketVersion       *string                  `json:"minBucketVersion,omitempty"`
 	Namespace              *NamespaceValue          `json:"namespace,omitempty"`
 	Values                 []ExperimentValue        `json:"values,omitempty"`
 	ExperimentID           string                   `json:"experimentId,omitempty"`
@@ -104,14 +104,14 @@ type SavedGroupTargeting struct {
 
 type ExperimentValue struct {
 	Value  string  `json:"value,omitempty"`
-	Weight int64   `json:"weight,omitempty"`
+	Weight string  `json:"weight,omitempty"`
 	Name   *string `json:"name,omitempty"`
 }
 
 type NamespaceValue struct {
-	Enabled bool    `json:"enabled,omitempty"`
-	Name    string  `json:"name,omitempty"`
-	Range   []int64 `json:"range,omitempty"`
+	Enabled bool     `json:"enabled,omitempty"`
+	Name    string   `json:"name,omitempty"`
+	Range   []string `json:"range,omitempty"`
 }
 
 // GetID returns the feature ID which is the resource name if not overwritten by spec.ID

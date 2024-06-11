@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/DoodleScheduling/growthbook-controller/api/v1beta1"
+	"github.com/DoodleScheduling/growthbook-controller/internal/storage"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -65,8 +66,8 @@ func TestUserCreateIfNotExists(t *testing.T) {
 
 	var insertedDoc User
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			return errors.New("does not exists")
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return nil, errors.New("does not exists")
 		},
 		InsertOne: func(ctx context.Context, doc interface{}) error {
 			insertedDoc = doc.(User)
@@ -87,9 +88,13 @@ func TestUserNoUpdate(t *testing.T) {
 	g := NewWithT(t)
 
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			dst.(*User).ID = "id"
-			return nil
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return &MockResult{
+				decode: func(dst interface{}) error {
+					dst.(*User).ID = "id"
+					return nil
+				},
+			}, nil
 		},
 	}
 
@@ -108,10 +113,14 @@ func TestUserUpdate(t *testing.T) {
 	var updateDoc interface{}
 
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			dst.(*User).ID = "id"
-			dst.(*User).Email = "old@org.com"
-			return nil
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return &MockResult{
+				decode: func(dst interface{}) error {
+					dst.(*User).ID = "id"
+					dst.(*User).Email = "old@org.com"
+					return nil
+				},
+			}, nil
 		},
 		UpdateOne: func(ctx context.Context, filter, doc interface{}) error {
 			updateFilter = filter
@@ -145,10 +154,14 @@ func TestUserSetPasswordIfEmpty(t *testing.T) {
 	g := NewWithT(t)
 
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			dst.(*User).ID = "id"
-			dst.(*User).Email = "old@org.com"
-			return nil
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return &MockResult{
+				decode: func(dst interface{}) error {
+					dst.(*User).ID = "id"
+					dst.(*User).Email = "old@org.com"
+					return nil
+				},
+			}, nil
 		},
 	}
 
@@ -166,11 +179,15 @@ func TestUserSetPassword(t *testing.T) {
 	var passwordHash = "edde9778227cd6f1d6c19989a38f4bba:9f95ef055ac8e16aa7186afbc13de15f9810a97fc9334755c3c7dd22b0a8408c373dd44ce7df9a8065f70ada23f57e4c981976ddea4cd3b24945afb44229aada"
 
 	db := &MockDatabase{
-		FindOne: func(ctx context.Context, filter, dst interface{}) error {
-			dst.(*User).ID = "id"
-			dst.(*User).PasswordHash = passwordHash
-			dst.(*User).Email = "old@org.com"
-			return nil
+		FindOne: func(ctx context.Context, filter interface{}) (storage.Decoder, error) {
+			return &MockResult{
+				decode: func(dst interface{}) error {
+					dst.(*User).ID = "id"
+					dst.(*User).PasswordHash = passwordHash
+					dst.(*User).Email = "old@org.com"
+					return nil
+				},
+			}, nil
 		},
 	}
 
