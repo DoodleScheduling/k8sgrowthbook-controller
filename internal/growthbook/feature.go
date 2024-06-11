@@ -102,6 +102,7 @@ type SavedGroupTargeting struct {
 }
 
 type ExperimentValue struct {
+	ID     string  `bson:"id,omitempty"`
 	Value  string  `bson:"value,omitempty"`
 	Weight float64 `bson:"weight,omitempty"`
 	Name   *string `bson:"name,omitempty"`
