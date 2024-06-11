@@ -1,6 +1,6 @@
 module github.com/DoodleScheduling/growthbook-controller
 
-go 1.20
+go 1.22
 
 require (
 	github.com/fluxcd/pkg/runtime v0.44.1
