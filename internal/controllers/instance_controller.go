@@ -76,9 +76,9 @@ func MongoDBProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, u
 	}
 
 	opts.SetAppName("growthbook-controller")
-	mongoClient, err := mongo.NewClient(opts)
+	mongoClient, err := mongo.Connect(ctx, opts)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed connecting to mongodb: %w", err)
 	}
 
 	u, err := url.Parse(instance.Spec.MongoDB.URI)
@@ -88,10 +88,6 @@ func MongoDBProvider(ctx context.Context, instance v1beta1.GrowthbookInstance, u
 
 	dbName := strings.TrimLeft(u.Path, "/")
 	db := mongoClient.Database(dbName)
-
-	if err := mongoClient.Connect(ctx); err != nil {
-		return nil, nil, fmt.Errorf("failed connecting to mongodb: %w", err)
-	}
 
 	return mongoClient, mongodb.New(db), nil
 }
