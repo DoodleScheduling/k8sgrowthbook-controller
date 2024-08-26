@@ -3,7 +3,7 @@
 [![release](https://img.shields.io/github/release/DoodleScheduling/growthbook-controller/all.svg)](https://github.com/DoodleScheduling/growthbook-controller/releases)
 [![release](https://github.com/doodlescheduling/growthbook-controller/actions/workflows/release.yaml/badge.svg)](https://github.com/doodlescheduling/growthbook-controller/actions/workflows/release.yaml)
 [![report](https://goreportcard.com/badge/github.com/DoodleScheduling/growthbook-controller)](https://goreportcard.com/report/github.com/DoodleScheduling/growthbook-controller)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/DoodleScheduling/growthbook-controller/badge)](https://api.securityscorecards.dev/projects/github.com/DoodleScheduling/growthbook-con    troller)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/DoodleScheduling/growthbook-controller/badge)](https://api.securityscorecards.dev/projects/github.com/DoodleScheduling/growthbook-controller)
 [![Coverage Status](https://coveralls.io/repos/github/DoodleScheduling/growthbook-controller/badge.svg?branch=master)](https://coveralls.io/github/DoodleScheduling/growthbook-controller?branch=master)
 [![license](https://img.shields.io/github/license/DoodleScheduling/growthbook-controller.svg)](https://github.com/DoodleScheduling/growthbook-controller/blob/master/LICENSE)
 
