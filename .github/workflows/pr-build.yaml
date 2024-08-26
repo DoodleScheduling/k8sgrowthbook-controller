@@ -7,6 +7,8 @@ on:
       - synchronize
       - reopened
 
+permissions: {}
+
 jobs:
   lint-chart:
     runs-on: ubuntu-latest
@@ -55,13 +57,6 @@ jobs:
         uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
         with:
           go-version: 1.22.x
-      - name: Restore Go cache
-        uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c # v3.3.3
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
       - name: fmt
         run: make fmt
       - name: vet
@@ -81,10 +76,10 @@ jobs:
     strategy:
       matrix:
         kubernetes-version:
-        - "1.25"
-        - "1.26"
         - "1.27"
         - "1.28"
+        - "1.29"
+        - "1.30"
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
@@ -96,13 +91,6 @@ jobs:
         uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
         with:
           go-version: 1.22.x
-      - name: Restore Go cache
-        uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c # v3.3.3
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
       - name: run test
         run: make test ENVTEST_K8S_VERSION=${{ matrix.kubernetes-version }}
 
@@ -121,13 +109,6 @@ jobs:
         uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
         with:
           go-version: 1.22.x
-      - name: Restore Go cache
-        uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c # v3.3.3
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
       - name: build
         run: make build
       - name: Check if working tree is dirty
@@ -243,3 +224,9 @@ jobs:
           
       - name: Run chart-testing (install)
         run: ct install --target-branch=master --chart-dirs chart
+
+  test-success:
+    runs-on: ubuntu-latest
+    needs: [test, e2e-tests]
+    steps:
+    - run: echo "all tests succeeded"

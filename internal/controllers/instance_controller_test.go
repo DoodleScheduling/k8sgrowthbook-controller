@@ -672,7 +672,7 @@ var _ = Describe("GrowthbookInstance controller", func() {
 						Status:             "False",
 						ObservedGeneration: 0,
 						Reason:             "Failed",
-						Message:            "error parsing uri: scheme must be \"mongodb\" or \"mongodb+srv\"",
+						Message:            "failed connecting to mongodb: error parsing uri: scheme must be \"mongodb\" or \"mongodb+srv\"",
 					},
 				},
 			}
