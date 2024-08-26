@@ -73,7 +73,7 @@ jobs:
       - name: Package helm charts
         run: |
           packVersion=$(echo "${{ github.ref_name }}" | sed 's/^v//g')
-          helm package chart/keycloak-controller -d chart --version=$packVersion --app-version=${{ github.ref_name }}
+          helm package chart/growthbook-controller -d chart --version=$packVersion --app-version=${{ github.ref_name }}
       - name: Publish helm charts to Github Container Registry
         run: |
           repository=$(echo "${{ github.repository_owner }}" | tr [:upper:] [:lower:])
