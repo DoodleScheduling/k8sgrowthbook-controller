@@ -337,29 +337,29 @@ func (r *GrowthbookInstanceReconciler) reconcile(ctx context.Context, instance v
 		ctx, cancel := context.WithTimeout(context.TODO(), time.Second*10)
 		defer cancel()
 		if err := disconnector.Disconnect(ctx); err != nil {
-			logger.Error(err, "failed disconnet mongodb")
+			logger.Error(err, "failed disconnecting mongodb")
 		}
 	}()
 
 	instance.Status.SubResourceCatalog = []v1beta1.ResourceReference{}
 
-	instance, err = r.reconcileUsers(ctx, instance, db, logger)
+	instance, err = r.reconcileUsers(ctx, instance, db)
 	if err != nil {
 		return instance, fmt.Errorf("failed reconciling users: %w", err)
 	}
 
-	instance, orgs, err := r.reconcileOrganizations(ctx, instance, db, logger)
+	instance, orgs, err := r.reconcileOrganizations(ctx, instance, db)
 	if err != nil {
 		return instance, fmt.Errorf("failed reconciling organizations: %w", err)
 	}
 
 	for _, org := range orgs {
-		instance, err = r.reconcileFeatures(ctx, instance, org, db, logger)
+		instance, err = r.reconcileFeatures(ctx, instance, org, db)
 		if err != nil {
 			return instance, fmt.Errorf("failed reconciling features: %w", err)
 		}
 
-		instance, err = r.reconcileClients(ctx, instance, org, db, logger)
+		instance, err = r.reconcileClients(ctx, instance, org, db)
 		if err != nil {
 			return instance, fmt.Errorf("failed reconciling clients: %w", err)
 		}
@@ -368,7 +368,7 @@ func (r *GrowthbookInstanceReconciler) reconcile(ctx context.Context, instance v
 	return instance, err
 }
 
-func (r *GrowthbookInstanceReconciler) reconcileOrganizations(ctx context.Context, instance v1beta1.GrowthbookInstance, db storage.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, []v1beta1.GrowthbookOrganization, error) {
+func (r *GrowthbookInstanceReconciler) reconcileOrganizations(ctx context.Context, instance v1beta1.GrowthbookInstance, db storage.Database) (v1beta1.GrowthbookInstance, []v1beta1.GrowthbookOrganization, error) {
 	var orgs v1beta1.GrowthbookOrganizationList
 	finalizerName := fmt.Sprintf("%s/%s.%s", v1beta1.Finalizer, instance.Name, instance.Namespace)
 
@@ -438,7 +438,7 @@ func (r *GrowthbookInstanceReconciler) reconcileOrganizations(ctx context.Contex
 	return instance, orgs.Items, nil
 }
 
-func (r *GrowthbookInstanceReconciler) reconcileFeatures(ctx context.Context, instance v1beta1.GrowthbookInstance, org v1beta1.GrowthbookOrganization, db storage.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
+func (r *GrowthbookInstanceReconciler) reconcileFeatures(ctx context.Context, instance v1beta1.GrowthbookInstance, org v1beta1.GrowthbookOrganization, db storage.Database) (v1beta1.GrowthbookInstance, error) {
 	var features v1beta1.GrowthbookFeatureList
 	selector, err := metav1.LabelSelectorAsSelector(org.Spec.ResourceSelector)
 	if err != nil {
@@ -521,7 +521,7 @@ func (r *GrowthbookInstanceReconciler) removeFinalizer(ctx context.Context, fina
 	return nil
 }
 
-func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, instance v1beta1.GrowthbookInstance, db storage.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
+func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, instance v1beta1.GrowthbookInstance, db storage.Database) (v1beta1.GrowthbookInstance, error) {
 	var users v1beta1.GrowthbookUserList
 	finalizerName := fmt.Sprintf("%s/%s.%s", v1beta1.Finalizer, instance.Name, instance.Namespace)
 
@@ -584,7 +584,7 @@ func (r *GrowthbookInstanceReconciler) reconcileUsers(ctx context.Context, insta
 	return instance, nil
 }
 
-func (r *GrowthbookInstanceReconciler) reconcileClients(ctx context.Context, instance v1beta1.GrowthbookInstance, org v1beta1.GrowthbookOrganization, db storage.Database, logger logr.Logger) (v1beta1.GrowthbookInstance, error) {
+func (r *GrowthbookInstanceReconciler) reconcileClients(ctx context.Context, instance v1beta1.GrowthbookInstance, org v1beta1.GrowthbookOrganization, db storage.Database) (v1beta1.GrowthbookInstance, error) {
 	var clients v1beta1.GrowthbookClientList
 	finalizerName := fmt.Sprintf("%s/%s.%s", v1beta1.Finalizer, instance.Name, instance.Namespace)
 
@@ -812,7 +812,7 @@ func matches(labels map[string]string, selector *metav1.LabelSelector) bool {
 
 	for kS, vS := range selector.MatchLabels {
 		var match bool
-		for kL, vL := range selector.MatchLabels {
+		for kL, vL := range labels {
 			if kS == kL && vS == vL {
 				match = true
 			}
