@@ -5,4 +5,4 @@ resources:
 - service.yaml
 images:
 - name: ghcr.io/doodlescheduling/growthbook-controller
-  newTag: v0.5.1
+  newTag: v0.5.2
