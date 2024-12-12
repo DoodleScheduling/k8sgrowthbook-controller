@@ -9,7 +9,7 @@ require (
 	github.com/onsi/gomega v1.36.0
 	github.com/spf13/pflag v1.0.5
 	go.mongodb.org/mongo-driver v1.17.1
-	golang.org/x/crypto v0.30.0
+	golang.org/x/crypto v0.31.0
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
 	k8s.io/api v0.31.3
 	k8s.io/apimachinery v0.31.4
